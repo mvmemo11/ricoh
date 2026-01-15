@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checklist de Verificación - Salas MS Teams</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header con logos -->
+        <div class="header">
+            <div class="logo-it">
+                <div>
+                    <p>PRO AV</p>
+                    <img src="https://www.ricoh.com/-/Media/Ricoh/Sites/com/about/company/history/img/common/ico-title.svg" alt="IT_Services">
+                </div>
+            </div>
+            <div class="logo-ricoh">
+                <img src="https://www.ricoh.com/-/Media/Ricoh/Common/cmn_g_header_footer/img/logo/logo.svg" alt="Ricoh_Logo">
+            </div>
+        </div>
+
+        <h1>Checklist de verificación para salas de videoconferencia MS Teams</h1>
+
+        <!-- Información del cliente -->
+        <div class="client-info">
+            <div class="info-row">
+                <label class="info-label">Nombre del cliente:</label>
+                <input type="text" class="info-input" placeholder="Ingrese el nombre del cliente">
+            </div>
+            <div class="info-row">
+                <label class="info-label">Ubicación:</label>
+                <input type="text" class="info-input" placeholder="Ingrese la ubicación">
+            </div>
+            <div class="info-row">
+                <label class="info-label">Nombre de la sala a revisar:</label>
+                <input type="text" class="info-input" placeholder="Ingrese el nombre de la sala">
+            </div>
+            <div class="info-row">
+                <label class="info-label">Fecha de revisión:</label>
+                <input type="date" class="info-input">
+            </div>
+        </div>
+
+        <!-- Sección: Instalación -->
+        <div class="section">
+            <div class="section-title">Instalación</div>
+            <table class="checklist-table">
+                <thead>
+                    <tr>
+                        <th class="item-cell"></th>
+                        <th class="check-cell">Sí</th>
+                        <th class="check-cell">NO</th>
+                        <th class="check-cell">N/A</th>
+                        <th class="obs-cell">Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Pantalla y soporte alineados</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst1" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst1" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst1" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                    <tr>
+                        <td>Cableado colocado y conectado de acuerdo con las adecuaciones</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst2" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst2" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst2" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                    <tr>
+                        <td>Cámara alineada</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst3" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst3" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst3" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                    <tr>
+                        <td>Micrófono instalados de acuerdo al plan de instalación</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst4" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst4" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst4" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                    <tr>
+                        <td>Codec instalado de acuerdo al plan de instalación</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst5" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst5" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst5" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                    <tr>
+                        <td>Controlador del sistema colocado</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst6" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst6" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst6" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                    <tr>
+                        <td>Cableado peinado correctamente</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst7" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst7" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst7" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Sección: Configuración -->
+        <div class="section">
+            <div class="section-title">Configuración</div>
+            <table class="checklist-table">
+                <thead>
+                    <tr>
+                        <th class="item-cell"></th>
+                        <th class="check-cell">Sí</th>
+                        <th class="check-cell">NO</th>
+                        <th class="check-cell">N/A</th>
+                        <th class="obs-cell">Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Audio configurado (o aplica)</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf1" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf1" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf1" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                    <tr>
+                        <td>Codec configurado</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf2" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf2" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf2" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                    <tr>
+                        <td>Controlador del sistema configurado</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf3" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf3" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf3" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                    <tr>
+                        <td>Pantalla con resolución adecuada</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf4" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf4" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf4" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                    <tr>
+                        <td>Cuenta MS Teams configurada</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf5" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf5" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf5" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                    <tr>
+                        <td>Cámara configurada</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf6" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf6" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf6" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                    <tr>
+                        <td>Salida a internet de acuerdo a infraestructura del cliente</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf7" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf7" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf7" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Sección: Capacitación -->
+        <div class="section">
+            <div class="section-title">Capacitación</div>
+            <table class="checklist-table">
+                <thead>
+                    <tr>
+                        <th class="item-cell"></th>
+                        <th class="check-cell">Sí</th>
+                        <th class="check-cell">NO</th>
+                        <th class="check-cell">N/A</th>
+                        <th class="obs-cell">Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Capacitación técnica/administrativo</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="cap1" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="cap1" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="cap1" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Sección: Protocolo de Pruebas -->
+        <div class="section">
+            <div class="section-title">Protocolo de Pruebas</div>
+            <table class="checklist-table">
+                <thead>
+                    <tr>
+                        <th class="item-cell"></th>
+                        <th class="check-cell">Sí</th>
+                        <th class="check-cell">NO</th>
+                        <th class="check-cell">N/A</th>
+                        <th class="obs-cell">Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Puedes oír adecuadamente durante la VC, local/remoto</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot1" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot1" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot1" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                    <tr>
+                        <td>Te escuchan adecuadamente durante la VC, local/remoto</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot2" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot2" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot2" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                    <tr>
+                        <td>Puedes ver de manera adecuada</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot3" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot3" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot3" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                    <tr>
+                        <td>Te pueden ver de manera adecuada</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot4" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot4" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot4" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                    <tr>
+                        <td>Puedes ver el contenido compartido</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot5" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot5" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot5" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                    <tr>
+                        <td>Controles en VC funcionan (mute, volumen, cámaras, etc)</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot6" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot6" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot6" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                    <tr>
+                        <td>Puedes ver la lista de usuarios en el tenan del cliente</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot7" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot7" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot7" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                    <tr>
+                        <td>Puedes realizar llamadas telefónicas desde el controlador (si licencia lo permite)</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot8" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot8" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot8" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                    <tr>
+                        <td>Evidencia fotográfica recabada</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot9" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot9" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot9" value="na"></div></td>
+                        <td><input type="text" class="obs-input" placeholder="Observaciones"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Sección de Notas -->
+        <div class="notes-section">
+            <div class="notes-title">Notas</div>
+            <textarea class="notes-textarea" placeholder="Escriba aquí sus notas adicionales..."></textarea>
+        </div>
+
+        <!-- Firmas -->
+        <div class="signatures">
+            <div class="signature-box">
+                <div class="signature-line">
+                    <div class="signature-label">Nombre y firma de Delivery</div>
+                </div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-line">
+                    <div class="signature-label">Nombre y firma de cliente</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="button-container">
+            <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
+            <button class="btn btn-secondary" onclick="resetForm()">Limpiar Formulario</button>
+        </div>
+    </div>
+
+    <script>
+        // Función para asegurar que solo un checkbox esté seleccionado por grupo
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    const name = this.name;
+                    document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
+                        if (cb !== this) {
+                            cb.checked = false;
+                        }
+                    });
+                }
+            });
+        });
+
+        // Función para resetear el formulario
+        function resetForm() {
+            if (confirm('¿Está seguro de que desea limpiar todo el formulario?')) {
+                // Limpiar todos los inputs de texto
+                document.querySelectorAll('input[type="text"], input[type="date"]').forEach(input => {
+                    input.value = '';
+                });
+                
+                // Desmarcar todos los checkboxes
+                document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    cb.checked = false;
+                });
+                
+                // Limpiar el textarea
+                document.querySelector('.notes-textarea').value = '';
+            }
+        }
+
+        // Auto-guardar en localStorage
+        function saveFormData() {
+            const formData = {};
+            
+            // Guardar inputs de texto
+            document.querySelectorAll('input[type="text"], input[type="date"]').forEach((input, index) => {
+                formData[`input_${index}`] = input.value;
+            });
+            
+            // Guardar checkboxes
+            document.querySelectorAll('input[type="checkbox"]').forEach((cb, index) => {
+                formData[`checkbox_${index}`] = cb.checked;
+            });
+            
+            // Guardar textarea
+            formData.notes = document.querySelector('.notes-textarea').value;
+            
+            localStorage.setItem('msTeamsChecklist', JSON.stringify(formData));
+        }
+
+        // Cargar datos guardados
+        function loadFormData() {
+            const savedData = localStorage.getItem('msTeamsChecklist');
+            if (savedData) {
+                const formData = JSON.parse(savedData);
+                
+                // Restaurar inputs de texto
+                document.querySelectorAll('input[type="text"], input[type="date"]').forEach((input, index) => {
+                    if (formData[`input_${index}`]) {
+                        input.value = formData[`input_${index}`];
+                    }
+                });
+                
+                // Restaurar checkboxes
+                document.querySelectorAll('input[type="checkbox"]').forEach((cb, index) => {
+                    cb.checked = formData[`checkbox_${index}`] || false;
+                });
+                
+                // Restaurar textarea
+                if (formData.notes) {
+                    document.querySelector('.notes-textarea').value = formData.notes;
+                }
+            }
+        }
+
+        // Guardar automáticamente cada vez que hay un cambio
+        document.addEventListener('input', saveFormData);
+        document.addEventListener('change', saveFormData);
+
+        // Cargar datos al iniciar
+        window.addEventListener('load', loadFormData);
+    </script>
+</body>
+</html>

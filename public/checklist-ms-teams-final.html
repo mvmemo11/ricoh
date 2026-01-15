@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checklist de Verificación - Salas MS Teams</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* Reset y estilos base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Header con logos */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        /* Logo PRO AV */
+        .logo-proav {
+            position: relative;
+            display: inline-block;
+        }
+
+        .proav-text {
+            position: absolute;
+            top: -5px;
+            left: 8px;
+            color: white;
+            font-weight: bold;
+            font-size: 13px;
+            letter-spacing: 1px;
+            z-index: 10;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+        }
+
+        .pink-box {
+            width: 70px;
+            height: 30px;
+            background-color: #e91e63;
+            display: block;
+            margin-top: 5px;
+        }
+
+        /* Logo Ricoh */
+        .logo-ricoh {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .ricoh-text {
+            color: #e91e63;
+            font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin: 0;
+        }
+
+        .ricoh-tagline {
+            color: #666;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
+        /* Título principal */
+        h1 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+            letter-spacing: 0.3px;
+        }
+
+        /* Información del cliente */
+        .client-info {
+            margin-bottom: 20px;
+            background-color: #fafafa;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+
+        .info-row {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #333;
+            font-size: 12px;
+        }
+
+        .info-input {
+            width: 100%;
+            padding: 5px 8px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 12px;
+            transition: border-color 0.3s ease;
+        }
+
+        .info-input:focus {
+            outline: none;
+            border-color: #e91e63;
+            box-shadow: 0 0 0 2px rgba(233, 30, 99, 0.1);
+        }
+
+        /* Secciones de checklist */
+        .section {
+            margin-bottom: 18px;
+            page-break-inside: avoid;
+        }
+
+        .section-title {
+            background-color: #333;
+            color: white;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 0;
+            letter-spacing: 0.3px;
+        }
+
+        /* Tabla de checklist */
+        .checklist-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .checklist-table thead {
+            background-color: #f0f0f0;
+        }
+
+        .checklist-table th,
+        .checklist-table td {
+            border: 1px solid #ccc;
+            padding: 5px;
+            text-align: left;
+        }
+
+        .checklist-table th {
+            font-weight: 600;
+            font-size: 11px;
+            text-align: center;
+            color: #555;
+        }
+
+        .checklist-table tbody tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        .checklist-table td {
+            font-size: 11px;
+            color: #333;
+        }
+
+        .item-cell {
+            width: 45%;
+            font-size: 11px;
+        }
+
+        .check-cell {
+            width: 7%;
+            text-align: center;
+            background-color: #fafafa;
+            padding: 3px !important;
+        }
+
+        .obs-cell {
+            width: 34%;
+            padding: 3px !important;
+        }
+
+        /* Checkboxes */
+        .check-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+            accent-color: #e91e63;
+        }
+
+        input[type="checkbox"]:hover {
+            transform: scale(1.05);
+        }
+
+        /* Textarea auto-expandible para observaciones */
+        .obs-input {
+            width: 100%;
+            padding: 3px 5px;
+            border: 1px solid #ddd;
+            border-radius: 2px;
+            font-size: 10px;
+            font-family: inherit;
+            resize: none;
+            overflow: hidden;
+            min-height: 20px;
+            max-height: 60px;
+            transition: border-color 0.3s ease;
+        }
+
+        .obs-input:focus {
+            outline: none;
+            border-color: #e91e63;
+        }
+
+        /* Área de notas */
+        .notes-section {
+            margin-top: 20px;
+            background-color: #fafafa;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+
+        .notes-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .notes-textarea {
+            width: 100%;
+            min-height: 60px;
+            max-height: 120px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 12px;
+            font-family: inherit;
+            resize: none;
+            overflow: hidden;
+            transition: border-color 0.3s ease;
+        }
+
+        .notes-textarea:focus {
+            outline: none;
+            border-color: #e91e63;
+            box-shadow: 0 0 0 2px rgba(233, 30, 99, 0.1);
+        }
+
+        /* Firmas con Canvas */
+        .signatures {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+            gap: 30px;
+        }
+
+        .signature-box {
+            width: 48%;
+            text-align: center;
+        }
+
+        .signature-canvas-container {
+            position: relative;
+            border: 1px solid #333;
+            border-radius: 3px;
+            background-color: white;
+            margin-bottom: 8px;
+        }
+
+        canvas {
+            display: block;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        .canvas-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 8px;
+        }
+
+        .canvas-btn {
+            padding: 4px 12px;
+            font-size: 11px;
+            border: 1px solid #ccc;
+            background-color: white;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .canvas-btn:hover {
+            background-color: #f0f0f0;
+        }
+
+        .signature-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        /* Botones de acción */
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .btn {
+            padding: 10px 25px;
+            font-size: 13px;
+            font-weight: 500;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-primary {
+            background-color: #e91e63;
+            color: white;
+            box-shadow: 0 2px 5px rgba(233, 30, 99, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: #c2185b;
+            box-shadow: 0 4px 8px rgba(233, 30, 99, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: #666;
+            color: white;
+            box-shadow: 0 2px 5px rgba(102, 102, 102, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background-color: #555;
+            box-shadow: 0 4px 8px rgba(102, 102, 102, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background-color: #4CAF50;
+            color: white;
+            box-shadow: 0 2px 5px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-success:hover {
+            background-color: #45a049;
+            box-shadow: 0 4px 8px rgba(76, 175, 80, 0.4);
+            transform: translateY(-1px);
+        }
+
+        /* Loading indicator */
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 18px;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px 40px;
+            border-radius: 10px;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .info-row {
+                grid-template-columns: 1fr;
+                gap: 5px;
+            }
+
+            .checklist-table {
+                font-size: 10px;
+            }
+
+            .signatures {
+                flex-direction: column;
+            }
+
+            .signature-box {
+                width: 100%;
+            }
+
+            .button-container {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading indicator -->
+    <div class="loading" id="loadingIndicator">
+        <div class="loading-text">Generando PDF...</div>
+    </div>
+
+    <div class="container" id="formContainer">
+        <!-- Header con logos -->
+        <div class="header">
+            <div class="logo-proav">
+                <span class="proav-text">PRO AV</span>
+                <div class="pink-box"></div>
+            </div>
+            <div class="logo-ricoh">
+                <div class="ricoh-text">RICOH</div>
+                <div class="ricoh-tagline">imagine. change.</div>
+            </div>
+        </div>
+
+        <h1>Checklist de verificación para salas de videoconferencia MS Teams</h1>
+
+        <!-- Información del cliente -->
+        <div class="client-info">
+            <div class="info-row">
+                <label class="info-label">Nombre del cliente:</label>
+                <input type="text" class="info-input" placeholder="Ingrese el nombre del cliente">
+            </div>
+            <div class="info-row">
+                <label class="info-label">Ubicación:</label>
+                <input type="text" class="info-input" placeholder="Ingrese la ubicación">
+            </div>
+            <div class="info-row">
+                <label class="info-label">Nombre de la sala a revisar:</label>
+                <input type="text" class="info-input" placeholder="Ingrese el nombre de la sala">
+            </div>
+            <div class="info-row">
+                <label class="info-label">Fecha de revisión:</label>
+                <input type="date" class="info-input">
+            </div>
+        </div>
+
+        <!-- Sección: Instalación -->
+        <div class="section">
+            <div class="section-title">Instalación</div>
+            <table class="checklist-table">
+                <thead>
+                    <tr>
+                        <th class="item-cell"></th>
+                        <th class="check-cell">Sí</th>
+                        <th class="check-cell">NO</th>
+                        <th class="check-cell">N/A</th>
+                        <th class="obs-cell">Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Pantalla y soporte alineados</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst1" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst1" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst1" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Cableado colocado y conectado de acuerdo con las adecuaciones</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst2" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst2" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst2" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Cámara alineada</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst3" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst3" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst3" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Micrófono instalados de acuerdo al plan de instalación</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst4" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst4" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst4" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Codec instalado de acuerdo al plan de instalación</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst5" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst5" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst5" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Controlador del sistema colocado</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst6" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst6" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst6" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Cableado peinado correctamente</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst7" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst7" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="inst7" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Sección: Configuración -->
+        <div class="section">
+            <div class="section-title">Configuración</div>
+            <table class="checklist-table">
+                <thead>
+                    <tr>
+                        <th class="item-cell"></th>
+                        <th class="check-cell">Sí</th>
+                        <th class="check-cell">NO</th>
+                        <th class="check-cell">N/A</th>
+                        <th class="obs-cell">Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Audio configurado (o aplica)</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf1" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf1" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf1" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Codec configurado</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf2" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf2" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf2" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Controlador del sistema configurado</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf3" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf3" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf3" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Pantalla con resolución adecuada</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf4" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf4" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf4" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Cuenta MS Teams configurada</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf5" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf5" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf5" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Cámara configurada</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf6" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf6" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf6" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Salida a internet de acuerdo a infraestructura del cliente</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf7" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf7" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="conf7" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Sección: Capacitación -->
+        <div class="section">
+            <div class="section-title">Capacitación</div>
+            <table class="checklist-table">
+                <thead>
+                    <tr>
+                        <th class="item-cell"></th>
+                        <th class="check-cell">Sí</th>
+                        <th class="check-cell">NO</th>
+                        <th class="check-cell">N/A</th>
+                        <th class="obs-cell">Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Capacitación técnica/administrativo</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="cap1" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="cap1" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="cap1" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Sección: Protocolo de Pruebas -->
+        <div class="section">
+            <div class="section-title">Protocolo de Pruebas</div>
+            <table class="checklist-table">
+                <thead>
+                    <tr>
+                        <th class="item-cell"></th>
+                        <th class="check-cell">Sí</th>
+                        <th class="check-cell">NO</th>
+                        <th class="check-cell">N/A</th>
+                        <th class="obs-cell">Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Puedes oír adecuadamente durante la VC, local/remoto</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot1" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot1" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot1" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Te escuchan adecuadamente durante la VC, local/remoto</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot2" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot2" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot2" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Puedes ver de manera adecuada</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot3" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot3" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot3" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Te pueden ver de manera adecuada</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot4" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot4" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot4" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Puedes ver el contenido compartido</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot5" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot5" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot5" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Controles en VC funcionan (mute, volumen, cámaras, etc)</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot6" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot6" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot6" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Puedes ver la lista de usuarios en el tenan del cliente</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot7" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot7" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot7" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Puedes realizar llamadas telefónicas desde el controlador (si licencia lo permite)</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot8" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot8" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot8" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Evidencia fotográfica recabada</td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot9" value="si"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot9" value="no"></div></td>
+                        <td class="check-cell"><div class="check-container"><input type="checkbox" name="prot9" value="na"></div></td>
+                        <td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Sección de Notas -->
+        <div class="notes-section">
+            <div class="notes-title">Notas</div>
+            <textarea class="notes-textarea auto-expand" placeholder="Escriba aquí sus notas adicionales..."></textarea>
+        </div>
+
+        <!-- Firmas con Canvas -->
+        <div class="signatures">
+            <div class="signature-box">
+                <div class="signature-label">Nombre y firma de Delivery</div>
+                <div class="signature-canvas-container">
+                    <canvas id="signatureDelivery" width="280" height="80"></canvas>
+                </div>
+                <div class="canvas-buttons">
+                    <button class="canvas-btn" onclick="clearSignature('signatureDelivery')">Limpiar</button>
+                </div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-label">Nombre y firma de cliente</div>
+                <div class="signature-canvas-container">
+                    <canvas id="signatureClient" width="280" height="80"></canvas>
+                </div>
+                <div class="canvas-buttons">
+                    <button class="canvas-btn" onclick="clearSignature('signatureClient')">Limpiar</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Botones de acción -->
+        <div class="button-container">
+            <button class="btn btn-success" onclick="exportToPDF()">Exportar PDF</button>
+            <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
+            <button class="btn btn-secondary" onclick="resetForm()">Limpiar</button>
+        </div>
+    </div>
+
+    <script>
+        // Auto-expand textareas
+        function autoExpand(textarea) {
+            textarea.style.height = 'auto';
+            const newHeight = Math.min(textarea.scrollHeight, 60);
+            textarea.style.height = newHeight + 'px';
+        }
+
+        // Setup auto-expand for all textareas
+        document.querySelectorAll('.auto-expand').forEach(textarea => {
+            textarea.addEventListener('input', function() {
+                autoExpand(this);
+            });
+            // Initial adjustment
+            autoExpand(textarea);
+        });
+
+        // Canvas signature functionality
+        const canvases = {
+            signatureDelivery: null,
+            signatureClient: null
+        };
+
+        function setupCanvas(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            let drawing = false;
+
+            // Set canvas background
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            canvases[canvasId] = { canvas, ctx, drawing };
+
+            // Mouse events
+            canvas.addEventListener('mousedown', (e) => startDrawing(canvasId, e));
+            canvas.addEventListener('mousemove', (e) => draw(canvasId, e));
+            canvas.addEventListener('mouseup', () => stopDrawing(canvasId));
+            canvas.addEventListener('mouseout', () => stopDrawing(canvasId));
+
+            // Touch events for mobile
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const mouseEvent = new MouseEvent('mousedown', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvas.dispatchEvent(mouseEvent);
+            });
+
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousemove', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvas.dispatchEvent(mouseEvent);
+            });
+
+            canvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                stopDrawing(canvasId);
+            });
+        }
+
+        function startDrawing(canvasId, e) {
+            const { canvas, ctx } = canvases[canvasId];
+            canvases[canvasId].drawing = true;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#000';
+        }
+
+        function draw(canvasId, e) {
+            const { canvas, ctx, drawing } = canvases[canvasId];
+            if (!drawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
+
+        function stopDrawing(canvasId) {
+            if (canvases[canvasId]) {
+                canvases[canvasId].drawing = false;
+            }
+        }
+
+        function clearSignature(canvasId) {
+            const { canvas, ctx } = canvases[canvasId];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            saveFormData();
+        }
+
+        // Setup canvases on load
+        window.addEventListener('load', () => {
+            setupCanvas('signatureDelivery');
+            setupCanvas('signatureClient');
+            loadFormData();
+        });
+
+        // Checkbox functionality
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    const name = this.name;
+                    document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
+                        if (cb !== this) {
+                            cb.checked = false;
+                        }
+                    });
+                }
+            });
+        });
+
+        // Reset form
+        function resetForm() {
+            if (confirm('¿Está seguro de que desea limpiar todo el formulario?')) {
+                document.querySelectorAll('input[type="text"], input[type="date"]').forEach(input => {
+                    input.value = '';
+                });
+                
+                document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    cb.checked = false;
+                });
+                
+                document.querySelectorAll('.auto-expand').forEach(textarea => {
+                    textarea.value = '';
+                    autoExpand(textarea);
+                });
+                
+                clearSignature('signatureDelivery');
+                clearSignature('signatureClient');
+                
+                localStorage.removeItem('msTeamsChecklist');
+            }
+        }
+
+        // Export to PDF
+        async function exportToPDF() {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            loadingIndicator.style.display = 'flex';
+
+            try {
+                // Hide buttons before capturing
+                const buttons = document.querySelector('.button-container');
+                const canvasButtons = document.querySelectorAll('.canvas-buttons');
+                
+                buttons.style.display = 'none';
+                canvasButtons.forEach(btn => btn.style.display = 'none');
+
+                // Add PDF class for better formatting
+                const container = document.getElementById('formContainer');
+                container.classList.add('pdf-export');
+
+                // Get client name for filename
+                const clientName = document.querySelector('.info-input').value || 'checklist';
+                const date = new Date().toISOString().split('T')[0];
+                const filename = `${clientName.replace(/\s+/g, '_')}_MS_Teams_${date}.pdf`;
+
+                // Capture with better settings
+                const canvas = await html2canvas(container, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    letterRendering: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff'
+                });
+
+                // Convert to PDF
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new window.jspdf.jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+
+                const imgWidth = 200; // Slightly smaller width for margins
+                const pageHeight = 285; // Slightly smaller height for margins
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+                // Add image to PDF with margins
+                if (imgHeight <= pageHeight) {
+                    pdf.addImage(imgData, 'PNG', 5, 5, imgWidth, imgHeight);
+                } else {
+                    // Scale to fit
+                    const ratio = pageHeight / imgHeight;
+                    const scaledWidth = imgWidth * ratio;
+                    const scaledHeight = pageHeight;
+                    const xOffset = (210 - scaledWidth) / 2;
+                    pdf.addImage(imgData, 'PNG', xOffset, 5, scaledWidth, scaledHeight);
+                }
+
+                // Save the PDF
+                pdf.save(filename);
+
+                // Remove PDF class and show buttons again
+                container.classList.remove('pdf-export');
+                buttons.style.display = 'flex';
+                canvasButtons.forEach(btn => btn.style.display = 'flex');
+                
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Error al generar el PDF. Por favor, intente nuevamente.');
+            } finally {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        // Auto-save functionality
+        function saveFormData() {
+            const formData = {};
+            
+            // Save text inputs
+            document.querySelectorAll('input[type="text"], input[type="date"]').forEach((input, index) => {
+                formData[`input_${index}`] = input.value;
+            });
+            
+            // Save checkboxes
+            document.querySelectorAll('input[type="checkbox"]').forEach((cb, index) => {
+                formData[`checkbox_${index}`] = cb.checked;
+            });
+            
+            // Save textareas
+            document.querySelectorAll('.auto-expand').forEach((textarea, index) => {
+                formData[`textarea_${index}`] = textarea.value;
+            });
+            
+            // Save signatures as data URLs
+            if (canvases.signatureDelivery && canvases.signatureDelivery.canvas) {
+                formData.signatureDelivery = canvases.signatureDelivery.canvas.toDataURL();
+            }
+            if (canvases.signatureClient && canvases.signatureClient.canvas) {
+                formData.signatureClient = canvases.signatureClient.canvas.toDataURL();
+            }
+            
+            localStorage.setItem('msTeamsChecklist', JSON.stringify(formData));
+        }
+
+        // Load saved data
+        function loadFormData() {
+            const savedData = localStorage.getItem('msTeamsChecklist');
+            if (savedData) {
+                try {
+                    const formData = JSON.parse(savedData);
+                    
+                    // Restore text inputs
+                    document.querySelectorAll('input[type="text"], input[type="date"]').forEach((input, index) => {
+                        if (formData[`input_${index}`]) {
+                            input.value = formData[`input_${index}`];
+                        }
+                    });
+                    
+                    // Restore checkboxes
+                    document.querySelectorAll('input[type="checkbox"]').forEach((cb, index) => {
+                        cb.checked = formData[`checkbox_${index}`] || false;
+                    });
+                    
+                    // Restore textareas
+                    document.querySelectorAll('.auto-expand').forEach((textarea, index) => {
+                        if (formData[`textarea_${index}`]) {
+                            textarea.value = formData[`textarea_${index}`];
+                            autoExpand(textarea);
+                        }
+                    });
+                    
+                    // Restore signatures
+                    if (formData.signatureDelivery && canvases.signatureDelivery) {
+                        const img = new Image();
+                        img.onload = function() {
+                            canvases.signatureDelivery.ctx.drawImage(img, 0, 0);
+                        };
+                        img.src = formData.signatureDelivery;
+                    }
+                    
+                    if (formData.signatureClient && canvases.signatureClient) {
+                        const img = new Image();
+                        img.onload = function() {
+                            canvases.signatureClient.ctx.drawImage(img, 0, 0);
+                        };
+                        img.src = formData.signatureClient;
+                    }
+                } catch (e) {
+                    console.error('Error loading saved data:', e);
+                }
+            }
+        }
+
+        // Auto-save on changes
+        document.addEventListener('input', saveFormData);
+        document.addEventListener('change', saveFormData);
+        
+        // Save signatures when drawing stops
+        document.addEventListener('mouseup', () => {
+            setTimeout(saveFormData, 100);
+        });
+        document.addEventListener('touchend', () => {
+            setTimeout(saveFormData, 100);
+        });
+    </script>
+</body>
+</html>
