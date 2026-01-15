@@ -1,0 +1,1879 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Checklist de Verificación - Salas MS Teams</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
+
+        // === SIGNATURE MODAL HELPERS ===
+        let currentSignatureTarget = null; // 'delivery' | 'client'
+        const modalState = {
+            canvas: null,
+            ctx: null,
+            drawing: false,
+            cssW: 0,
+            cssH: 280
+        };
+
+        function _ensureWhiteBackground(ctx, w, h) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, w, h);
+        }
+
+        function isCanvasBlank(canvas) {
+            const ctx = canvas.getContext('2d');
+            const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i] !== 255 || data[i+1] !== 255 || data[i+2] !== 255 || data[i+3] !== 255) return false;
+            }
+            return true;
+        }
+
+        function ensureModalCanvas() {
+            const canvas = document.getElementById('modalCanvas');
+            if (!canvas) return;
+            const rect = canvas.getBoundingClientRect();
+            const cssW = Math.max(600, rect.width || 800);
+            const cssH = modalState.cssH;
+
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = Math.floor(cssW * dpr);
+            canvas.height = Math.floor(cssH * dpr);
+            canvas.style.width = '100%';
+            canvas.style.height = cssH + 'px';
+
+            const ctx = canvas.getContext('2d');
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            _ensureWhiteBackground(ctx, cssW, cssH);
+
+            modalState.canvas = canvas;
+            modalState.ctx = ctx;
+            modalState.cssW = cssW;
+
+            if (canvas.dataset.bound === '1') return;
+            canvas.dataset.bound = '1';
+
+            const getPos = (e) => {
+                const r = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return { x: clientX - r.left, y: clientY - r.top };
+            };
+
+            const start = (e) => {
+                e.preventDefault();
+                modalState.drawing = true;
+                const p = getPos(e);
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = '#000';
+            };
+
+            const move = (e) => {
+                if (!modalState.drawing) return;
+                e.preventDefault();
+                const p = getPos(e);
+                ctx.lineTo(p.x, p.y);
+                ctx.stroke();
+            };
+
+            const end = (e) => {
+                if (!modalState.drawing) return;
+                e.preventDefault();
+                modalState.drawing = false;
+                setTimeout(saveFormData, 50);
+            };
+
+            canvas.addEventListener('mousedown', start);
+            canvas.addEventListener('mousemove', move);
+            canvas.addEventListener('mouseup', end);
+            canvas.addEventListener('mouseout', end);
+
+            canvas.addEventListener('touchstart', start, { passive: false });
+            canvas.addEventListener('touchmove', move, { passive: false });
+            canvas.addEventListener('touchend', end, { passive: false });
+        }
+
+        function clearModalCanvas(save = true) {
+            ensureModalCanvas();
+            if (!modalState.ctx) return;
+            modalState.ctx.clearRect(0, 0, modalState.cssW, modalState.cssH);
+            _ensureWhiteBackground(modalState.ctx, modalState.cssW, modalState.cssH);
+            if (save) setTimeout(saveFormData, 50);
+        }
+
+        function openSignatureModal(target) {
+            currentSignatureTarget = target;
+            const modal = document.getElementById('signatureModal');
+            const title = document.getElementById('modalTitle');
+            if (!modal || !title) return;
+
+            title.textContent = target === 'delivery' ? 'Firma de Delivery' : 'Firma de Cliente';
+
+            modal.style.display = 'block';
+            ensureModalCanvas();
+            clearModalCanvas(false);
+
+            const sourceId = target === 'delivery' ? 'signatureDelivery' : 'signatureClient';
+            const source = document.getElementById(sourceId);
+
+            if (source) {
+                const img = new Image();
+                img.onload = () => {
+                    const w = modalState.cssW;
+                    const h = modalState.cssH;
+                    _ensureWhiteBackground(modalState.ctx, w, h);
+
+                    const scale = Math.min(w / source.width, h / source.height) * 0.92;
+                    const drawW = source.width * scale;
+                    const drawH = source.height * scale;
+                    const dx = (w - drawW) / 2;
+                    const dy = (h - drawH) / 2;
+                    modalState.ctx.drawImage(img, dx, dy, drawW, drawH);
+                };
+                img.src = source.toDataURL('image/png');
+            }
+
+            modal.onclick = (e) => {
+                if (e.target === modal) closeModal();
+            };
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('signatureModal');
+            if (modal) modal.style.display = 'none';
+            currentSignatureTarget = null;
+        }
+
+        function saveModalSignature() {
+            if (!currentSignatureTarget) return;
+            const targetId = currentSignatureTarget === 'delivery' ? 'signatureDelivery' : 'signatureClient';
+            const hintId = currentSignatureTarget === 'delivery' ? 'hintDelivery' : 'hintClient';
+
+            const targetCanvas = document.getElementById(targetId);
+            if (!targetCanvas) return;
+            const tctx = targetCanvas.getContext('2d');
+
+            tctx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+            tctx.fillStyle = '#ffffff';
+            tctx.fillRect(0, 0, targetCanvas.width, targetCanvas.height);
+
+            tctx.drawImage(modalState.canvas, 0, 0, targetCanvas.width, targetCanvas.height);
+
+            const hint = document.getElementById(hintId);
+            if (hint) hint.style.display = isCanvasBlank(targetCanvas) ? 'block' : 'none';
+
+            saveFormData();
+            closeModal();
+        }
+
+        function updateSignatureHints() {
+            const d = document.getElementById('signatureDelivery');
+            const c = document.getElementById('signatureClient');
+            const hd = document.getElementById('hintDelivery');
+            const hc = document.getElementById('hintClient');
+            if (d && hd) hd.style.display = isCanvasBlank(d) ? 'block' : 'none';
+            if (c && hc) hc.style.display = isCanvasBlank(c) ? 'block' : 'none';
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('signatureModal');
+                if (modal && modal.style.display === 'block') closeModal();
+            }
+        });
+
+    </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">
+
+        // === SIGNATURE MODAL HELPERS ===
+        let currentSignatureTarget = null; // 'delivery' | 'client'
+        const modalState = {
+            canvas: null,
+            ctx: null,
+            drawing: false,
+            cssW: 0,
+            cssH: 280
+        };
+
+        function _ensureWhiteBackground(ctx, w, h) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, w, h);
+        }
+
+        function isCanvasBlank(canvas) {
+            const ctx = canvas.getContext('2d');
+            const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i] !== 255 || data[i+1] !== 255 || data[i+2] !== 255 || data[i+3] !== 255) return false;
+            }
+            return true;
+        }
+
+        function ensureModalCanvas() {
+            const canvas = document.getElementById('modalCanvas');
+            if (!canvas) return;
+            const rect = canvas.getBoundingClientRect();
+            const cssW = Math.max(600, rect.width || 800);
+            const cssH = modalState.cssH;
+
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = Math.floor(cssW * dpr);
+            canvas.height = Math.floor(cssH * dpr);
+            canvas.style.width = '100%';
+            canvas.style.height = cssH + 'px';
+
+            const ctx = canvas.getContext('2d');
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            _ensureWhiteBackground(ctx, cssW, cssH);
+
+            modalState.canvas = canvas;
+            modalState.ctx = ctx;
+            modalState.cssW = cssW;
+
+            if (canvas.dataset.bound === '1') return;
+            canvas.dataset.bound = '1';
+
+            const getPos = (e) => {
+                const r = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return { x: clientX - r.left, y: clientY - r.top };
+            };
+
+            const start = (e) => {
+                e.preventDefault();
+                modalState.drawing = true;
+                const p = getPos(e);
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = '#000';
+            };
+
+            const move = (e) => {
+                if (!modalState.drawing) return;
+                e.preventDefault();
+                const p = getPos(e);
+                ctx.lineTo(p.x, p.y);
+                ctx.stroke();
+            };
+
+            const end = (e) => {
+                if (!modalState.drawing) return;
+                e.preventDefault();
+                modalState.drawing = false;
+                setTimeout(saveFormData, 50);
+            };
+
+            canvas.addEventListener('mousedown', start);
+            canvas.addEventListener('mousemove', move);
+            canvas.addEventListener('mouseup', end);
+            canvas.addEventListener('mouseout', end);
+
+            canvas.addEventListener('touchstart', start, { passive: false });
+            canvas.addEventListener('touchmove', move, { passive: false });
+            canvas.addEventListener('touchend', end, { passive: false });
+        }
+
+        function clearModalCanvas(save = true) {
+            ensureModalCanvas();
+            if (!modalState.ctx) return;
+            modalState.ctx.clearRect(0, 0, modalState.cssW, modalState.cssH);
+            _ensureWhiteBackground(modalState.ctx, modalState.cssW, modalState.cssH);
+            if (save) setTimeout(saveFormData, 50);
+        }
+
+        function openSignatureModal(target) {
+            currentSignatureTarget = target;
+            const modal = document.getElementById('signatureModal');
+            const title = document.getElementById('modalTitle');
+            if (!modal || !title) return;
+
+            title.textContent = target === 'delivery' ? 'Firma de Delivery' : 'Firma de Cliente';
+
+            modal.style.display = 'block';
+            ensureModalCanvas();
+            clearModalCanvas(false);
+
+            const sourceId = target === 'delivery' ? 'signatureDelivery' : 'signatureClient';
+            const source = document.getElementById(sourceId);
+
+            if (source) {
+                const img = new Image();
+                img.onload = () => {
+                    const w = modalState.cssW;
+                    const h = modalState.cssH;
+                    _ensureWhiteBackground(modalState.ctx, w, h);
+
+                    const scale = Math.min(w / source.width, h / source.height) * 0.92;
+                    const drawW = source.width * scale;
+                    const drawH = source.height * scale;
+                    const dx = (w - drawW) / 2;
+                    const dy = (h - drawH) / 2;
+                    modalState.ctx.drawImage(img, dx, dy, drawW, drawH);
+                };
+                img.src = source.toDataURL('image/png');
+            }
+
+            modal.onclick = (e) => {
+                if (e.target === modal) closeModal();
+            };
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('signatureModal');
+            if (modal) modal.style.display = 'none';
+            currentSignatureTarget = null;
+        }
+
+        function saveModalSignature() {
+            if (!currentSignatureTarget) return;
+            const targetId = currentSignatureTarget === 'delivery' ? 'signatureDelivery' : 'signatureClient';
+            const hintId = currentSignatureTarget === 'delivery' ? 'hintDelivery' : 'hintClient';
+
+            const targetCanvas = document.getElementById(targetId);
+            if (!targetCanvas) return;
+            const tctx = targetCanvas.getContext('2d');
+
+            tctx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+            tctx.fillStyle = '#ffffff';
+            tctx.fillRect(0, 0, targetCanvas.width, targetCanvas.height);
+
+            tctx.drawImage(modalState.canvas, 0, 0, targetCanvas.width, targetCanvas.height);
+
+            const hint = document.getElementById(hintId);
+            if (hint) hint.style.display = isCanvasBlank(targetCanvas) ? 'block' : 'none';
+
+            saveFormData();
+            closeModal();
+        }
+
+        function updateSignatureHints() {
+            const d = document.getElementById('signatureDelivery');
+            const c = document.getElementById('signatureClient');
+            const hd = document.getElementById('hintDelivery');
+            const hc = document.getElementById('hintClient');
+            if (d && hd) hd.style.display = isCanvasBlank(d) ? 'block' : 'none';
+            if (c && hc) hc.style.display = isCanvasBlank(c) ? 'block' : 'none';
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('signatureModal');
+                if (modal && modal.style.display === 'block') closeModal();
+            }
+        });
+
+    </script>
+<style>
+        /* Reset y estilos base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Header con logos */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        /* Logo PRO AV */
+        .logo-proav {
+            position: relative;
+            display: inline-block;
+        }
+
+        .proav-text {
+            position: absolute;
+            top: -5px;
+            left: 8px;
+            color: white;
+            font-weight: bold;
+            font-size: 13px;
+            letter-spacing: 1px;
+            z-index: 10;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+        }
+
+        .pink-box {
+            width: 70px;
+            height: 30px;
+            background-color: #e91e63;
+            display: block;
+            margin-top: 5px;
+        }
+
+        /* Logo Ricoh */
+        .logo-ricoh {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .ricoh-text {
+            color: #e91e63;
+            font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin: 0;
+        }
+
+        .ricoh-tagline {
+            color: #666;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
+        /* Título principal */
+        h1 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+            letter-spacing: 0.3px;
+        }
+
+        /* Información del cliente */
+        .client-info {
+            margin-bottom: 20px;
+            background-color: #fafafa;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+
+        .info-row {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            margin-bottom: 10px;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #333;
+            font-size: 13px;
+        }
+
+        .info-input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 13px;
+            line-height: 1.4;
+            height: 36px;
+            transition: border-color 0.3s ease;
+        }
+
+        .info-input:focus {
+            outline: none;
+            border-color: #e91e63;
+            box-shadow: 0 0 0 2px rgba(233, 30, 99, 0.1);
+        }
+
+        /* Secciones de checklist */
+        .section {
+            margin-bottom: 18px;
+            page-break-inside: avoid;
+        }
+
+        .section-title {
+            background-color: #333;
+            color: white;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 0;
+            letter-spacing: 0.3px;
+        }
+
+        /* Tabla de checklist */
+        .checklist-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .checklist-table thead {
+            background-color: #f0f0f0;
+        }
+
+        .checklist-table th,
+        .checklist-table td {
+            border: 1px solid #ccc;
+            padding: 5px;
+            text-align: left;
+        }
+
+        .checklist-table th {
+            font-weight: 600;
+            font-size: 11px;
+            text-align: center;
+            color: #555;
+        }
+
+        .checklist-table tbody tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        .checklist-table td {
+            font-size: 11px;
+            color: #333;
+        }
+
+        .item-cell {
+            width: 45%;
+            font-size: 11px;
+        }
+
+        .check-cell {
+            width: 7%;
+            text-align: center;
+            background-color: #fafafa;
+            padding: 3px !important;
+        }
+
+        .obs-cell {
+            width: 34%;
+            padding: 3px !important;
+        }
+
+        /* Checkboxes */
+        .check-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+            accent-color: #e91e63;
+        }
+
+        input[type="checkbox"]:hover {
+            transform: scale(1.05);
+        }
+
+        /* Textarea auto-expandible para observaciones */
+        .obs-input {
+            width: 100%;
+            padding: 3px 5px;
+            border: 1px solid #ddd;
+            border-radius: 2px;
+            font-size: 10px;
+            font-family: inherit;
+            resize: none;
+            overflow: hidden;
+            min-height: 20px;
+            max-height: 60px;
+            transition: border-color 0.3s ease;
+        }
+
+        .obs-input:focus {
+            outline: none;
+            border-color: #e91e63;
+        }
+
+        /* Área de notas */
+        .notes-section {
+            margin-top: 20px;
+            background-color: #fafafa;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+
+        .notes-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .notes-textarea {
+            width: 100%;
+            min-height: 60px;
+            max-height: 120px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 12px;
+            font-family: inherit;
+            resize: none;
+            overflow: hidden;
+            transition: border-color 0.3s ease;
+        }
+
+        .notes-textarea:focus {
+            outline: none;
+            border-color: #e91e63;
+            box-shadow: 0 0 0 2px rgba(233, 30, 99, 0.1);
+        }
+
+        /* Firmas con Canvas */
+        .signatures {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+            gap: 30px;
+        }
+
+        .signature-box {
+            width: 48%;
+            text-align: center;
+        }
+
+        .signature-canvas-container {
+            position: relative;
+            border: 1px solid #333;
+            border-radius: 3px;
+            background-color: white;
+            margin-bottom: 8px;
+        }
+
+        canvas {
+            display: block;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        .canvas-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 8px;
+        }
+
+        .canvas-btn {
+            padding: 4px 12px;
+            font-size: 11px;
+            border: 1px solid #ccc;
+            background-color: white;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .canvas-btn:hover {
+            background-color: #f0f0f0;
+        }
+
+        .signature-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        /* Botones de acción */
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .btn {
+            padding: 10px 25px;
+            font-size: 13px;
+            font-weight: 500;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-primary {
+            background-color: #e91e63;
+            color: white;
+            box-shadow: 0 2px 5px rgba(233, 30, 99, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: #c2185b;
+            box-shadow: 0 4px 8px rgba(233, 30, 99, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: #666;
+            color: white;
+            box-shadow: 0 2px 5px rgba(102, 102, 102, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background-color: #555;
+            box-shadow: 0 4px 8px rgba(102, 102, 102, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background-color: #4CAF50;
+            color: white;
+            box-shadow: 0 2px 5px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-success:hover {
+            background-color: #45a049;
+            box-shadow: 0 4px 8px rgba(76, 175, 80, 0.4);
+            transform: translateY(-1px);
+        }
+
+        /* Loading indicator */
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 18px;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px 40px;
+            border-radius: 10px;
+        }
+
+        /* Modal para firmas */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            overflow: auto;
+        }
+
+        .modal-content {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 30px;
+            width: 90%;
+            max-width: 600px;
+            min-height: 400px;
+            border-radius: 10px;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .close-modal {
+            font-size: 28px;
+            font-weight: bold;
+            color: #999;
+            cursor: pointer;
+            transition: color 0.3s;
+            line-height: 20px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-modal:hover {
+            color: #e91e63;
+        }
+
+        .modal-canvas {
+            border: 2px solid #333;
+            border-radius: 5px;
+            display: block;
+            margin: 0 auto 20px;
+            cursor: crosshair;
+            background: white;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            padding: 10px 25px;
+            font-size: 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .modal-btn-clear {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .modal-btn-clear:hover {
+            background-color: #da190b;
+        }
+
+        .modal-btn-save {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .modal-btn-save:hover {
+            background-color: #45a049;
+        }
+
+        /* Signature canvas container hover effect */
+        .signature-canvas-container {
+            position: relative;
+            border: 1px solid #333;
+            border-radius: 3px;
+            background-color: white;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .signature-canvas-container:hover {
+            border-color: #e91e63;
+            box-shadow: 0 2px 8px rgba(233, 30, 99, 0.2);
+        }
+
+        .signature-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #999;
+            font-size: 12px;
+            pointer-events: none;
+        }
+
+        /* Estilos específicos para exportación PDF */
+        @media print, (max-width: 0px) {
+            .info-input {
+                padding: 10px !important;
+                font-size: 14px !important;
+                height: auto !important;
+                line-height: 1.5 !important;
+                border: 1px solid #999 !important;
+            }
+            
+            .info-label {
+                font-size: 13px !important;
+                font-weight: bold !important;
+            }
+            
+            .client-info {
+                padding: 20px !important;
+                margin-bottom: 25px !important;
+            }
+            
+            .info-row {
+                margin-bottom: 12px !important;
+                gap: 15px !important;
+            }
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .info-row {
+                grid-template-columns: 1fr;
+                gap: 5px;
+            }
+
+            .checklist-table {
+                font-size: 10px;
+            }
+
+            .signatures {
+                flex-direction: column;
+            }
+
+            .signature-box {
+                width: 100%;
+            }
+
+            .button-container {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    
+        /* ===== Modal firma (mejor UX) ===== */
+        .modal { display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; overflow:auto; background:rgba(0,0,0,0.55); }
+        .modal-content { background:#fff; margin:4vh auto; padding:18px; border-radius:14px; width:min(920px,92vw); box-shadow:0 10px 30px rgba(0,0,0,0.25); }
+        .modal-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+        .close-modal { cursor:pointer; font-size:26px; line-height:1; padding:2px 10px; border-radius:10px; user-select:none; }
+        .close-modal:hover { background:#f1f1f1; }
+        .modal-canvas-container { border:2px solid #0f4c81; border-radius:12px; padding:10px; background:#fff; }
+        #modalCanvas { width:100%; height:280px; display:block; background:#fff; border-radius:10px; }
+        .modal-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:12px; flex-wrap:wrap; }
+
+        /* ===== Mejoras de layout para exportación PDF (html2canvas) ===== */
+        body.pdf-export { background:#ffffff !important; padding:0 !important; }
+        .container.pdf-export { max-width:820px !important; margin:0 auto !important; padding:28px !important; box-shadow:none !important; }
+        .container.pdf-export h1 { font-size:18px !important; margin-bottom:18px !important; }
+        .container.pdf-export .client-info { padding:18px !important; margin-bottom:22px !important; }
+        .container.pdf-export .info-label { font-size:13px !important; }
+        .container.pdf-export .info-input { font-size:13px !important; height:40px !important; }
+        .container.pdf-export .section { margin-bottom:20px !important; }
+        .container.pdf-export .section-title { padding:10px 12px !important; font-size:13px !important; }
+        .container.pdf-export .checklist-table th, .container.pdf-export .checklist-table td { padding:7px !important; font-size:11.5px !important; }
+        .container.pdf-export .obs-input { font-size:11px !important; min-height:26px !important; max-height:90px !important; }
+        .container.pdf-export .notes-textarea { min-height:90px !important; font-size:12px !important; }
+        .container.pdf-export .signatures { margin-top:28px !important; gap:26px !important; }
+        .container.pdf-export .signature-canvas-container { border-width:1.5px !important; }
+        .section, .client-info, .notes-section, .signatures { page-break-inside:avoid; }
+
+    </style>
+</head>
+<body>
+<!-- Loading indicator -->
+<div class="loading" id="loadingIndicator">
+<div class="loading-text">Generando PDF...</div>
+</div>
+<!-- Modal para firmas -->
+<div class="modal" id="signatureModal">
+<div class="modal-content">
+<div class="modal-header">
+<h2 class="modal-title" id="modalTitle">Firma</h2>
+<span class="close-modal" onclick="closeModal()">×</span>
+</div>
+<canvas class="modal-canvas" height="200" id="modalCanvas" width="500"></canvas>
+<div class="modal-buttons">
+<button class="modal-btn modal-btn-clear" onclick="clearModalCanvas()">🗑️ Limpiar</button>
+<button class="modal-btn modal-btn-save" onclick="saveModalSignature()">✓ Guardar Firma</button>
+</div>
+</div>
+</div>
+<div class="container" id="formContainer">
+<!-- Header con logos -->
+<div class="header">
+<div class="logo-proav">
+<span class="proav-text">PRO AV</span>
+<div class="pink-box"></div>
+</div>
+<div class="logo-ricoh">
+<div class="ricoh-text">RICOH</div>
+<div class="ricoh-tagline">imagine. change.</div>
+</div>
+</div>
+<h1>Checklist de verificación para salas de videoconferencia MS Teams</h1>
+<!-- Información del cliente -->
+<div class="client-info">
+<div class="info-row">
+<label class="info-label">Nombre del cliente:</label>
+<input class="info-input" placeholder="Ingrese el nombre del cliente" type="text"/>
+</div>
+<div class="info-row">
+<label class="info-label">Ubicación:</label>
+<input class="info-input" placeholder="Ingrese la ubicación" type="text"/>
+</div>
+<div class="info-row">
+<label class="info-label">Nombre de la sala a revisar:</label>
+<input class="info-input" placeholder="Ingrese el nombre de la sala" type="text"/>
+</div>
+<div class="info-row">
+<label class="info-label">Fecha de revisión:</label>
+<input class="info-input" type="date"/>
+</div>
+</div>
+<!-- Sección: Instalación -->
+<div class="section">
+<div class="section-title">Instalación</div>
+<table class="checklist-table">
+<thead>
+<tr>
+<th class="item-cell"></th>
+<th class="check-cell">Sí</th>
+<th class="check-cell">NO</th>
+<th class="check-cell">N/A</th>
+<th class="obs-cell">Observaciones</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pantalla y soporte alineados</td>
+<td class="check-cell"><div class="check-container"><input name="inst1" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="inst1" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="inst1" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+<tr>
+<td>Cableado colocado y conectado de acuerdo con las adecuaciones</td>
+<td class="check-cell"><div class="check-container"><input name="inst2" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="inst2" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="inst2" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+<tr>
+<td>Cámara alineada</td>
+<td class="check-cell"><div class="check-container"><input name="inst3" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="inst3" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="inst3" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+<tr>
+<td>Micrófono instalados de acuerdo al plan de instalación</td>
+<td class="check-cell"><div class="check-container"><input name="inst4" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="inst4" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="inst4" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+<tr>
+<td>Codec instalado de acuerdo al plan de instalación</td>
+<td class="check-cell"><div class="check-container"><input name="inst5" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="inst5" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="inst5" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+<tr>
+<td>Controlador del sistema colocado</td>
+<td class="check-cell"><div class="check-container"><input name="inst6" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="inst6" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="inst6" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+<tr>
+<td>Cableado peinado correctamente</td>
+<td class="check-cell"><div class="check-container"><input name="inst7" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="inst7" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="inst7" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Sección: Configuración -->
+<div class="section">
+<div class="section-title">Configuración</div>
+<table class="checklist-table">
+<thead>
+<tr>
+<th class="item-cell"></th>
+<th class="check-cell">Sí</th>
+<th class="check-cell">NO</th>
+<th class="check-cell">N/A</th>
+<th class="obs-cell">Observaciones</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Audio configurado (o aplica)</td>
+<td class="check-cell"><div class="check-container"><input name="conf1" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="conf1" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="conf1" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+<tr>
+<td>Codec configurado</td>
+<td class="check-cell"><div class="check-container"><input name="conf2" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="conf2" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="conf2" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+<tr>
+<td>Controlador del sistema configurado</td>
+<td class="check-cell"><div class="check-container"><input name="conf3" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="conf3" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="conf3" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+<tr>
+<td>Pantalla con resolución adecuada</td>
+<td class="check-cell"><div class="check-container"><input name="conf4" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="conf4" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="conf4" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+<tr>
+<td>Cuenta MS Teams configurada</td>
+<td class="check-cell"><div class="check-container"><input name="conf5" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="conf5" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="conf5" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+<tr>
+<td>Cámara configurada</td>
+<td class="check-cell"><div class="check-container"><input name="conf6" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="conf6" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="conf6" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+<tr>
+<td>Salida a internet de acuerdo a infraestructura del cliente</td>
+<td class="check-cell"><div class="check-container"><input name="conf7" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="conf7" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="conf7" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Sección: Capacitación -->
+<div class="section">
+<div class="section-title">Capacitación</div>
+<table class="checklist-table">
+<thead>
+<tr>
+<th class="item-cell"></th>
+<th class="check-cell">Sí</th>
+<th class="check-cell">NO</th>
+<th class="check-cell">N/A</th>
+<th class="obs-cell">Observaciones</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Capacitación técnica/administrativo</td>
+<td class="check-cell"><div class="check-container"><input name="cap1" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="cap1" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="cap1" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Sección: Protocolo de Pruebas -->
+<div class="section">
+<div class="section-title">Protocolo de Pruebas</div>
+<table class="checklist-table">
+<thead>
+<tr>
+<th class="item-cell"></th>
+<th class="check-cell">Sí</th>
+<th class="check-cell">NO</th>
+<th class="check-cell">N/A</th>
+<th class="obs-cell">Observaciones</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Puedes oír adecuadamente durante la VC, local/remoto</td>
+<td class="check-cell"><div class="check-container"><input name="prot1" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="prot1" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="prot1" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+<tr>
+<td>Te escuchan adecuadamente durante la VC, local/remoto</td>
+<td class="check-cell"><div class="check-container"><input name="prot2" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="prot2" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="prot2" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+<tr>
+<td>Puedes ver de manera adecuada</td>
+<td class="check-cell"><div class="check-container"><input name="prot3" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="prot3" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="prot3" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+<tr>
+<td>Te pueden ver de manera adecuada</td>
+<td class="check-cell"><div class="check-container"><input name="prot4" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="prot4" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="prot4" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+<tr>
+<td>Puedes ver el contenido compartido</td>
+<td class="check-cell"><div class="check-container"><input name="prot5" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="prot5" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="prot5" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+<tr>
+<td>Controles en VC funcionan (mute, volumen, cámaras, etc)</td>
+<td class="check-cell"><div class="check-container"><input name="prot6" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="prot6" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="prot6" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+<tr>
+<td>Puedes ver la lista de usuarios en el tenan del cliente</td>
+<td class="check-cell"><div class="check-container"><input name="prot7" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="prot7" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="prot7" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+<tr>
+<td>Puedes realizar llamadas telefónicas desde el controlador (si licencia lo permite)</td>
+<td class="check-cell"><div class="check-container"><input name="prot8" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="prot8" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="prot8" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+<tr>
+<td>Evidencia fotográfica recabada</td>
+<td class="check-cell"><div class="check-container"><input name="prot9" type="checkbox" value="si"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="prot9" type="checkbox" value="no"/></div></td>
+<td class="check-cell"><div class="check-container"><input name="prot9" type="checkbox" value="na"/></div></td>
+<td class="obs-cell"><textarea class="obs-input auto-expand" placeholder="Observaciones"></textarea></td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Sección de Notas -->
+<div class="notes-section">
+<div class="notes-title">Notas</div>
+<textarea class="notes-textarea auto-expand" placeholder="Escriba aquí sus notas adicionales..."></textarea>
+</div>
+<!-- Firmas con Canvas -->
+<div class="signatures">
+<div class="signature-box">
+<div class="signature-label">Nombre y firma de Delivery</div>
+<div class="signature-canvas-container" onclick="openSignatureModal('delivery')">
+<canvas height="80" id="signatureDelivery" width="280"></canvas>
+<span class="signature-hint" id="hintDelivery">Click para firmar</span>
+</div>
+<div class="canvas-buttons">
+<button class="canvas-btn" onclick="clearSignature('signatureDelivery')">Limpiar</button>
+</div>
+</div>
+<div class="signature-box">
+<div class="signature-label">Nombre y firma de cliente</div>
+<div class="signature-canvas-container" onclick="openSignatureModal('client')">
+<canvas height="80" id="signatureClient" width="280"></canvas>
+<span class="signature-hint" id="hintClient">Click para firmar</span>
+</div>
+<div class="canvas-buttons">
+<button class="canvas-btn" onclick="clearSignature('signatureClient')">Limpiar</button>
+</div>
+</div>
+</div>
+<!-- Botones de acción -->
+<div class="button-container">
+<button class="btn btn-success" onclick="exportToPDF()">📄 Exportar PDF</button>
+<button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir</button>
+<button class="btn btn-secondary" onclick="resetForm()">🔄 Limpiar</button>
+</div>
+</div>
+<script>
+        // Auto-expand textareas
+        function autoExpand(textarea) {
+            textarea.style.height = 'auto';
+            const newHeight = Math.min(textarea.scrollHeight, 60);
+            textarea.style.height = newHeight + 'px';
+        }
+
+        // Setup auto-expand for all textareas
+        document.querySelectorAll('.auto-expand').forEach(textarea => {
+            textarea.addEventListener('input', function() {
+                autoExpand(this);
+            });
+            // Initial adjustment
+            autoExpand(textarea);
+        });
+
+        // Canvas signature functionality
+        const canvases = {
+            signatureDelivery: null,
+            signatureClient: null
+        };
+
+        function setupCanvas(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            let drawing = false;
+
+            // Set canvas background
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            canvases[canvasId] = { canvas, ctx, drawing };
+
+            // Mouse events
+            canvas.addEventListener('mousedown', (e) => startDrawing(canvasId, e));
+            canvas.addEventListener('mousemove', (e) => draw(canvasId, e));
+            canvas.addEventListener('mouseup', () => stopDrawing(canvasId));
+            canvas.addEventListener('mouseout', () => stopDrawing(canvasId));
+
+            // Touch events for mobile
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const mouseEvent = new MouseEvent('mousedown', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvas.dispatchEvent(mouseEvent);
+            });
+
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousemove', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvas.dispatchEvent(mouseEvent);
+            });
+
+            canvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                stopDrawing(canvasId);
+            });
+        }
+
+        function startDrawing(canvasId, e) {
+            const { canvas, ctx } = canvases[canvasId];
+            canvases[canvasId].drawing = true;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#000';
+        }
+
+        function draw(canvasId, e) {
+            const { canvas, ctx, drawing } = canvases[canvasId];
+            if (!drawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
+
+        function stopDrawing(canvasId) {
+            if (canvases[canvasId]) {
+                canvases[canvasId].drawing = false;
+            }
+        }
+
+        function clearSignature(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (canvasId === 'signatureDelivery') {
+                const h = document.getElementById('hintDelivery');
+                if (h) h.style.display = 'block';
+            }
+            if (canvasId === 'signatureClient') {
+                const h = document.getElementById('hintClient');
+                if (h) h.style.display = 'block';
+            }
+
+            saveFormData();
+        }
+
+        // Setup canvases on load
+        window.addEventListener('load', () => {
+            setupCanvas('signatureDelivery');
+            setupCanvas('signatureClient');
+            loadFormData();
+            if (typeof updateSignatureHints === 'function') setTimeout(updateSignatureHints, 150);
+        });
+
+        // Checkbox functionality
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    const name = this.name;
+                    document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
+                        if (cb !== this) {
+                            cb.checked = false;
+                        }
+                    });
+                }
+            });
+        });
+
+        // Reset form
+        function resetForm() {
+            if (confirm('¿Está seguro de que desea limpiar todo el formulario?')) {
+                document.querySelectorAll('input[type="text"], input[type="date"]').forEach(input => {
+                    input.value = '';
+                });
+                
+                document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    cb.checked = false;
+                });
+                
+                document.querySelectorAll('.auto-expand').forEach(textarea => {
+                    textarea.value = '';
+                    autoExpand(textarea);
+                });
+                
+                clearSignature('signatureDelivery');
+                clearSignature('signatureClient');
+                
+                localStorage.removeItem('msTeamsChecklist');
+            }
+        }
+
+        // Export to PDF (multipágina, más legible)
+        async function exportToPDF() {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            loadingIndicator.style.display = 'flex';
+
+            const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+            try {
+                const container = document.getElementById('formContainer');
+
+                const buttons = document.querySelector('.button-container');
+                const canvasButtons = document.querySelectorAll('.canvas-buttons');
+                if (buttons) buttons.style.display = 'none';
+                canvasButtons.forEach(btn => btn.style.display = 'none');
+
+                document.body.classList.add('pdf-export');
+                container.classList.add('pdf-export');
+
+                await sleep(150);
+
+                const clientName = document.querySelector('.info-input')?.value || 'checklist';
+                const date = new Date().toISOString().split('T')[0];
+                const filename = `${clientName.replace(/\s+/g, '_')}_MS_Teams_${date}.pdf`;
+
+                const canvas = await html2canvas(container, {
+                    scale: 2.5,
+                    useCORS: true,
+                    logging: false,
+                    letterRendering: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff',
+                    windowWidth: Math.max(1200, container.scrollWidth),
+                    windowHeight: container.scrollHeight
+                });
+
+                const pdf = new window.jspdf.jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4',
+                    compress: true
+                });
+
+                const pageWidth = 210;
+                const pageHeight = 297;
+                const margin = 8;
+                const usableWidth = pageWidth - margin * 2;
+                const usableHeight = pageHeight - margin * 2;
+
+                const imgWidthMm = usableWidth;
+                const pxPerMm = canvas.width / imgWidthMm;
+                const pageHeightPx = Math.floor(usableHeight * pxPerMm);
+
+                let pageIndex = 0;
+                let offsetPx = 0;
+
+                while (offsetPx < canvas.height) {
+                    const sliceHeightPx = Math.min(pageHeightPx, canvas.height - offsetPx);
+
+                    const sliceCanvas = document.createElement('canvas');
+                    sliceCanvas.width = canvas.width;
+                    sliceCanvas.height = sliceHeightPx;
+
+                    const sliceCtx = sliceCanvas.getContext('2d');
+                    sliceCtx.fillStyle = '#ffffff';
+                    sliceCtx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+
+                    sliceCtx.drawImage(
+                        canvas,
+                        0, offsetPx, canvas.width, sliceHeightPx,
+                        0, 0, canvas.width, sliceHeightPx
+                    );
+
+                    const sliceImgData = sliceCanvas.toDataURL('image/png', 1.0);
+                    const sliceHeightMm = sliceHeightPx / pxPerMm;
+
+                    if (pageIndex > 0) pdf.addPage();
+
+                    pdf.addImage(
+                        sliceImgData,
+                        'PNG',
+                        margin,
+                        margin,
+                        imgWidthMm,
+                        sliceHeightMm,
+                        undefined,
+                        'FAST'
+                    );
+
+                    pageIndex += 1;
+                    offsetPx += sliceHeightPx;
+                }
+
+                pdf.save(filename);
+
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Error al generar el PDF. Por favor, intente nuevamente.');
+            } finally {
+                const buttons = document.querySelector('.button-container');
+                const canvasButtons = document.querySelectorAll('.canvas-buttons');
+                if (buttons) buttons.style.display = 'flex';
+                canvasButtons.forEach(btn => btn.style.display = 'flex');
+
+                document.body.classList.remove('pdf-export');
+                const container = document.getElementById('formContainer');
+                if (container) container.classList.remove('pdf-export');
+
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+
+        // Auto-save functionality
+        function saveFormData() {
+            const formData = {};
+            
+            // Save text inputs
+            document.querySelectorAll('input[type="text"], input[type="date"]').forEach((input, index) => {
+                formData[`input_${index}`] = input.value;
+            });
+            
+            // Save checkboxes
+            document.querySelectorAll('input[type="checkbox"]').forEach((cb, index) => {
+                formData[`checkbox_${index}`] = cb.checked;
+            });
+            
+            // Save textareas
+            document.querySelectorAll('.auto-expand').forEach((textarea, index) => {
+                formData[`textarea_${index}`] = textarea.value;
+            });
+            
+            // Save signatures as data URLs
+            if (canvases.signatureDelivery && canvases.signatureDelivery.canvas) {
+                formData.signatureDelivery = canvases.signatureDelivery.canvas.toDataURL();
+            }
+            if (canvases.signatureClient && canvases.signatureClient.canvas) {
+                formData.signatureClient = canvases.signatureClient.canvas.toDataURL();
+            }
+            
+            localStorage.setItem('msTeamsChecklist', JSON.stringify(formData));
+        }
+
+        // Load saved data
+        function loadFormData() {
+            const savedData = localStorage.getItem('msTeamsChecklist');
+            if (savedData) {
+                try {
+                    const formData = JSON.parse(savedData);
+                    
+                    // Restore text inputs
+                    document.querySelectorAll('input[type="text"], input[type="date"]').forEach((input, index) => {
+                        if (formData[`input_${index}`]) {
+                            input.value = formData[`input_${index}`];
+                        }
+                    });
+                    
+                    // Restore checkboxes
+                    document.querySelectorAll('input[type="checkbox"]').forEach((cb, index) => {
+                        cb.checked = formData[`checkbox_${index}`] || false;
+                    });
+                    
+                    // Restore textareas
+                    document.querySelectorAll('.auto-expand').forEach((textarea, index) => {
+                        if (formData[`textarea_${index}`]) {
+                            textarea.value = formData[`textarea_${index}`];
+                            autoExpand(textarea);
+                        }
+                    });
+                    
+                    // Restore signatures
+                    if (formData.signatureDelivery && canvases.signatureDelivery) {
+                        const img = new Image();
+                        img.onload = function() {
+                            canvases.signatureDelivery.ctx.drawImage(img, 0, 0);
+                        };
+                        img.src = formData.signatureDelivery;
+                    }
+                    
+                    if (formData.signatureClient && canvases.signatureClient) {
+                        const img = new Image();
+                        img.onload = function() {
+                            canvases.signatureClient.ctx.drawImage(img, 0, 0);
+                        };
+                        img.src = formData.signatureClient;
+                    }
+                } catch (e) {
+                    console.error('Error loading saved data:', e);
+                }
+            }
+        }
+
+        // Auto-save on changes
+        document.addEventListener('input', saveFormData);
+        document.addEventListener('change', saveFormData);
+        
+        // Save signatures when drawing stops
+        document.addEventListener('mouseup', () => {
+            setTimeout(saveFormData, 100);
+        });
+        document.addEventListener('touchend', () => {
+            setTimeout(saveFormData, 100);
+        });
+    
+
+        // === SIGNATURE MODAL HELPERS ===
+        let currentSignatureTarget = null; // 'delivery' | 'client'
+        const modalState = {
+            canvas: null,
+            ctx: null,
+            drawing: false,
+            cssW: 0,
+            cssH: 280
+        };
+
+        function _ensureWhiteBackground(ctx, w, h) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, w, h);
+        }
+
+        function isCanvasBlank(canvas) {
+            const ctx = canvas.getContext('2d');
+            const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i] !== 255 || data[i+1] !== 255 || data[i+2] !== 255 || data[i+3] !== 255) return false;
+            }
+            return true;
+        }
+
+        function ensureModalCanvas() {
+            const canvas = document.getElementById('modalCanvas');
+            if (!canvas) return;
+            const rect = canvas.getBoundingClientRect();
+            const cssW = Math.max(600, rect.width || 800);
+            const cssH = modalState.cssH;
+
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = Math.floor(cssW * dpr);
+            canvas.height = Math.floor(cssH * dpr);
+            canvas.style.width = '100%';
+            canvas.style.height = cssH + 'px';
+
+            const ctx = canvas.getContext('2d');
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            _ensureWhiteBackground(ctx, cssW, cssH);
+
+            modalState.canvas = canvas;
+            modalState.ctx = ctx;
+            modalState.cssW = cssW;
+
+            if (canvas.dataset.bound === '1') return;
+            canvas.dataset.bound = '1';
+
+            const getPos = (e) => {
+                const r = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return { x: clientX - r.left, y: clientY - r.top };
+            };
+
+            const start = (e) => {
+                e.preventDefault();
+                modalState.drawing = true;
+                const p = getPos(e);
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = '#000';
+            };
+
+            const move = (e) => {
+                if (!modalState.drawing) return;
+                e.preventDefault();
+                const p = getPos(e);
+                ctx.lineTo(p.x, p.y);
+                ctx.stroke();
+            };
+
+            const end = (e) => {
+                if (!modalState.drawing) return;
+                e.preventDefault();
+                modalState.drawing = false;
+                setTimeout(saveFormData, 50);
+            };
+
+            canvas.addEventListener('mousedown', start);
+            canvas.addEventListener('mousemove', move);
+            canvas.addEventListener('mouseup', end);
+            canvas.addEventListener('mouseout', end);
+
+            canvas.addEventListener('touchstart', start, { passive: false });
+            canvas.addEventListener('touchmove', move, { passive: false });
+            canvas.addEventListener('touchend', end, { passive: false });
+        }
+
+        function clearModalCanvas(save = true) {
+            ensureModalCanvas();
+            if (!modalState.ctx) return;
+            modalState.ctx.clearRect(0, 0, modalState.cssW, modalState.cssH);
+            _ensureWhiteBackground(modalState.ctx, modalState.cssW, modalState.cssH);
+            if (save) setTimeout(saveFormData, 50);
+        }
+
+        function openSignatureModal(target) {
+            currentSignatureTarget = target;
+            const modal = document.getElementById('signatureModal');
+            const title = document.getElementById('modalTitle');
+            if (!modal || !title) return;
+
+            title.textContent = target === 'delivery' ? 'Firma de Delivery' : 'Firma de Cliente';
+
+            modal.style.display = 'block';
+            ensureModalCanvas();
+            clearModalCanvas(false);
+
+            const sourceId = target === 'delivery' ? 'signatureDelivery' : 'signatureClient';
+            const source = document.getElementById(sourceId);
+
+            if (source) {
+                const img = new Image();
+                img.onload = () => {
+                    const w = modalState.cssW;
+                    const h = modalState.cssH;
+                    _ensureWhiteBackground(modalState.ctx, w, h);
+
+                    const scale = Math.min(w / source.width, h / source.height) * 0.92;
+                    const drawW = source.width * scale;
+                    const drawH = source.height * scale;
+                    const dx = (w - drawW) / 2;
+                    const dy = (h - drawH) / 2;
+                    modalState.ctx.drawImage(img, dx, dy, drawW, drawH);
+                };
+                img.src = source.toDataURL('image/png');
+            }
+
+            modal.onclick = (e) => {
+                if (e.target === modal) closeModal();
+            };
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('signatureModal');
+            if (modal) modal.style.display = 'none';
+            currentSignatureTarget = null;
+        }
+
+        function saveModalSignature() {
+            if (!currentSignatureTarget) return;
+            const targetId = currentSignatureTarget === 'delivery' ? 'signatureDelivery' : 'signatureClient';
+            const hintId = currentSignatureTarget === 'delivery' ? 'hintDelivery' : 'hintClient';
+
+            const targetCanvas = document.getElementById(targetId);
+            if (!targetCanvas) return;
+            const tctx = targetCanvas.getContext('2d');
+
+            tctx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+            tctx.fillStyle = '#ffffff';
+            tctx.fillRect(0, 0, targetCanvas.width, targetCanvas.height);
+
+            tctx.drawImage(modalState.canvas, 0, 0, targetCanvas.width, targetCanvas.height);
+
+            const hint = document.getElementById(hintId);
+            if (hint) hint.style.display = isCanvasBlank(targetCanvas) ? 'block' : 'none';
+
+            saveFormData();
+            closeModal();
+        }
+
+        function updateSignatureHints() {
+            const d = document.getElementById('signatureDelivery');
+            const c = document.getElementById('signatureClient');
+            const hd = document.getElementById('hintDelivery');
+            const hc = document.getElementById('hintClient');
+            if (d && hd) hd.style.display = isCanvasBlank(d) ? 'block' : 'none';
+            if (c && hc) hc.style.display = isCanvasBlank(c) ? 'block' : 'none';
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('signatureModal');
+                if (modal && modal.style.display === 'block') closeModal();
+            }
+        });
+
+    </script>
+</body>
+</html>
