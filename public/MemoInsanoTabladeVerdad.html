@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tablas de Verdad</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f6f9;--surface:#fff;--border:#dde3ed;--border2:#c8d0e0;
+  --blue:#2563eb;--blue-l:#eff4ff;--blue-m:#bfcfff;
+  --grey:#64748b;--grey-l:#94a3b8;--text:#1e2a3a;--text2:#374151;
+  --green:#059669;--green-bg:#ecfdf5;
+  --red:#dc2626;--red-bg:#fef2f2;
+  --amber:#d97706;--amber-bg:#fffbeb;
+  --purple:#7c3aed;--purple-l:#f5f3ff;--purple-m:#ddd6fe;
+  --r:10px;--sh:0 1px 4px rgba(30,42,58,.07),0 2px 12px rgba(30,42,58,.05);
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;font-size:15px;line-height:1.5}
+.page{max-width:860px;margin:0 auto;padding:2.5rem 1.25rem 4rem}
+
+.ph{margin-bottom:2rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)}
+.pt{font-size:1.3rem;font-weight:600;letter-spacing:-.02em}
+.ps{font-size:.75rem;color:var(--grey-l);margin-top:.2rem;font-family:'DM Mono',monospace}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:1rem}
+.ch{padding:.85rem 1.2rem;border-bottom:1px solid var(--border)}
+.cl{font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-l);font-family:'DM Mono',monospace}
+.cb{padding:1.2rem}
+
+/* Tabs */
+.tab-row{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;padding:1.2rem}
+.tab-btn{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:.9rem 1rem;cursor:pointer;text-align:left;transition:all .15s;font-family:'DM Sans',sans-serif}
+.tab-btn:hover{border-color:var(--blue-m);background:var(--blue-l)}
+.tab-btn.active{border-color:var(--blue);background:var(--blue-l);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.tn{font-size:.67rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);font-family:'DM Mono',monospace;margin-bottom:.3rem}
+.tf{font-size:.78rem;font-family:'DM Mono',monospace;color:var(--text2);line-height:1.7}
+.tf small{font-size:.68rem;color:#94a3b8}
+
+/* Builder */
+.bb{padding:1.2rem}
+.bh{font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-l);font-family:'DM Mono',monospace;margin-bottom:.9rem}
+
+.frow{display:flex;flex-wrap:wrap;align-items:center;gap:.28rem;padding:.65rem .85rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:.9rem;min-height:3.2rem}
+
+/* Grupo */
+.grp{display:flex;align-items:center;gap:.2rem}
+
+/* Botón ¬ grupo */
+.gneg{font-family:'DM Mono',monospace;font-size:.8rem;background:none;border:1.5px solid var(--border);border-radius:5px;padding:.2rem .38rem;cursor:pointer;color:var(--grey-l);transition:all .15s;line-height:1;white-space:nowrap}
+.gneg:hover,.gneg.on{background:var(--purple-l);border-color:var(--purple-m);color:var(--purple)}
+.gneg.on{font-weight:700}
+
+/* Paren / bracket */
+.tp{font-family:'DM Mono',monospace;font-size:1rem;color:var(--grey-l);padding:0 .04rem;user-select:none}
+.tb{font-family:'DM Mono',monospace;font-size:1.1rem;color:var(--grey-l);padding:0 .04rem;user-select:none;font-weight:300}
+
+/* Literal */
+.lw{display:flex;align-items:center}
+.lb{font-family:'DM Mono',monospace;font-size:.85rem;background:none;border:1.5px solid var(--border);border-right:none;border-radius:5px 0 0 5px;padding:.2rem .28rem;cursor:pointer;color:var(--grey-l);transition:all .15s;line-height:1;height:1.75rem}
+.lb:hover,.lb.on{background:var(--blue-l);border-color:var(--blue-m);color:var(--blue)}
+.lb.on{font-weight:700}
+.ll{font-family:'DM Mono',monospace;font-size:.87rem;font-weight:500;padding:.2rem .42rem;border:1.5px solid var(--border);border-radius:0 5px 5px 0;color:var(--text);background:#fff;user-select:none;height:1.75rem;display:flex;align-items:center}
+
+/* Op select */
+.ow{position:relative;display:flex;align-items:center}
+.osel{appearance:none;background:#fff;border:1.5px solid var(--blue-m);border-radius:6px;padding:.2rem 1.45rem .2rem .45rem;font-family:'DM Mono',monospace;font-size:.9rem;color:var(--blue);font-weight:500;cursor:pointer;outline:none;transition:all .15s;height:1.75rem}
+.osel:hover,.osel:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.ow::after{content:'▾';position:absolute;right:.34rem;color:var(--blue);pointer-events:none;font-size:.6rem;top:50%;transform:translateY(-50%)}
+
+.osel-main{appearance:none;background:#fff;border:2px solid var(--blue);border-radius:7px;padding:.2rem 1.55rem .2rem .55rem;font-family:'DM Mono',monospace;font-size:.97rem;color:var(--blue);font-weight:600;cursor:pointer;outline:none;transition:all .15s;height:1.85rem}
+.osel-main:hover,.osel-main:focus{background:var(--blue-l);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+.ow-main{position:relative;display:flex;align-items:center}
+.ow-main::after{content:'▾';position:absolute;right:.36rem;color:var(--blue);pointer-events:none;font-size:.6rem;top:50%;transform:translateY(-50%)}
+
+/* Separador entre macrogrupos */
+.macro-sep{display:flex;align-items:center;padding:0 .15rem}
+
+/* Legend */
+.legend{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.2rem}
+.leg{display:flex;align-items:center;gap:.28rem;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:.17rem .5rem;font-size:.71rem}
+.ls{font-family:'DM Mono',monospace;font-weight:600;color:var(--blue)}
+.ln{color:var(--grey);font-size:.68rem}
+.leg.lp .ls{color:var(--purple)}
+
+/* Preview */
+.pbox{font-family:'DM Mono',monospace;font-size:.84rem;padding:.65rem .85rem;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text2);margin-bottom:.8rem;min-height:2.3rem;word-break:break-all;line-height:2}
+.pv-v{color:#2563eb;font-weight:500}
+.pv-n{color:#7c3aed}
+.pv-o{color:#0891b2;font-weight:600}
+.pv-p{color:var(--grey-l)}
+.pv-b{color:#94a3b8;font-size:1.05em}
+.pv-gn{color:#7c3aed;font-weight:700}
+
+.err{display:none;align-items:center;gap:.45rem;background:var(--red-bg);border:1px solid #fca5a5;border-radius:7px;padding:.55rem .8rem;font-size:.78rem;color:var(--red);margin-bottom:.8rem}
+.err.show{display:flex}
+
+.btn-go{width:100%;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:.72rem;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-go:hover{background:#1d4ed8;transform:translateY(-1px);box-shadow:0 4px 16px rgba(37,99,235,.25)}
+.btn-go:active{transform:translateY(0)}
+
+/* Resultado */
+.rc{display:none;margin-top:1rem}
+.badge{display:inline-flex;align-items:center;gap:.35rem;border-radius:6px;padding:.3rem .7rem;font-size:.78rem;font-weight:600;margin-bottom:1.1rem;font-family:'DM Mono',monospace}
+.bt{background:var(--green-bg);color:var(--green);border:1px solid #a7f3d0}
+.bc{background:var(--amber-bg);color:var(--amber);border:1px solid #fde68a}
+.bx{background:var(--red-bg);color:var(--red);border:1px solid #fca5a5}
+
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.77rem;font-family:'DM Mono',monospace}
+thead tr{border-bottom:2px solid var(--border2)}
+th{padding:.48rem .6rem;text-align:center;font-size:.63rem;letter-spacing:.05em;font-weight:600;color:var(--grey);text-transform:uppercase;white-space:nowrap}
+th.thr{color:var(--blue);border-left:2px solid var(--border2)}
+th.thsep{border-left:1px solid var(--border2)}
+td{padding:.38rem .6rem;text-align:center;border-bottom:1px solid var(--border)}
+td.tdr{border-left:2px solid var(--border2);font-weight:700;font-size:.82rem}
+td.tdsep{border-left:1px solid var(--border2)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(37,99,235,.02)}
+.vT{color:var(--green)}.vF{color:var(--red)}
+.tdr.vT{background:#f0fdf9}.tdr.vF{background:#fff5f5}
+.rsep td{border-top:1.5px solid var(--border2)!important}
+
+@media(max-width:580px){
+  .tab-row{grid-template-columns:1fr}
+  th,td{padding:.32rem .35rem;font-size:.68rem}
+  .frow{gap:.18rem}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="ph">
+    <div class="pt">Tablas de Verdad</div>
+    <div class="ps">// lógica proposicional · p, q, r, s</div>
+  </div>
+
+  <!-- Selección -->
+  <div class="card">
+    <div class="ch"><span class="cl">Selecciona la proposición</span></div>
+    <div class="tab-row">
+      <button class="tab-btn active" id="tab1" onclick="selectProp(1)">
+        <div class="tn">Proposición 1</div>
+        <div class="tf">( A OP B ) OP ( C OP D )<br><small>variables: p, q, r</small></div>
+      </button>
+      <button class="tab-btn" id="tab2" onclick="selectProp(2)">
+        <div class="tn">Proposición 2</div>
+        <div class="tf">[ (A OP B) OP (C OP D) ] OP [ E OP (F OP G) ]<br><small>variables: p, q, r, s</small></div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Constructor -->
+  <div class="card">
+    <div class="ch"><span class="cl">Configura la fórmula</span></div>
+    <div class="bb">
+      <div class="bh">¬ azul = negar variable &nbsp;·&nbsp; ¬(…) morado = negar subgrupo &nbsp;·&nbsp; selector = operador</div>
+
+      <!-- Prop 1 -->
+      <div id="b1"><div class="frow" id="row1"></div></div>
+
+      <!-- Prop 2 -->
+      <div id="b2" style="display:none">
+        <div class="frow" id="row2"></div>
+      </div>
+
+      <div class="legend">
+        <div class="leg"><span class="ls">∧</span><span class="ln">conjunción</span></div>
+        <div class="leg"><span class="ls">∨</span><span class="ln">disyunción</span></div>
+        <div class="leg"><span class="ls">→</span><span class="ln">condicional</span></div>
+        <div class="leg"><span class="ls">↔</span><span class="ln">bicondicional</span></div>
+        <div class="leg"><span class="ls">¬v</span><span class="ln">negar variable</span></div>
+        <div class="leg lp"><span class="ls">¬()</span><span class="ln">negar grupo</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview -->
+  <div class="card">
+    <div class="ch"><span class="cl">Fórmula resultante</span></div>
+    <div class="cb">
+      <div class="pbox" id="preview">—</div>
+      <div class="err" id="err"><span>⚠</span><span id="errt"></span></div>
+      <button class="btn-go" onclick="calcular()">Calcular tabla de verdad →</button>
+    </div>
+  </div>
+
+  <!-- Resultado -->
+  <div class="rc card" id="rc">
+    <div class="ch"><span class="cl">Resultado</span></div>
+    <div class="cb">
+      <div id="bw"></div>
+      <div class="tw"><table id="tbl"></table></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// PROPOSICIÓN 1:  (L0 OP0 L1) OP1 (L2 OP2 L3)
+//   vars base:     p   q       q    r
+//   negL1[0..3], negG1[0..1], ops1[0..2]
+//
+// PROPOSICIÓN 2:  [ (L0 OP0 L1) OP1 (L2 OP2 L3) ] OP_M [ L4 OP3 (L5 OP4 L6) ]
+//   vars base:      p    q        q    r             q      r       s
+//   negL2[0..6], negG2[0..4], ops2[0..4], opMain2
+//   negG2: 0=primer subgrupo interno izq, 1=segundo subgrupo interno der,
+//           2=macrogrupo izquierdo [...], 3=subgrupo derecho (r OP ¬s),
+//           4=macrogrupo derecho [...]
+// ═══════════════════════════════════════════════════════════════════
+
+// ── PROP 1 ──────────────────────────────────────────────────────────
+const BASE1 = ['p','q','q','r'];
+const negL1 = [false,true,true,true];   // default: p ¬q ¬q ¬r
+const negG1 = [false,false];
+const ops1  = ['∧','∧','∧'];
+
+// ── PROP 2 ──────────────────────────────────────────────────────────
+// Estructura: [(p OP ¬q) OP (¬q OP r)] OP [¬q OP (r OP ¬s)]
+// Literales:    0    1        2    3      4      5     6
+const BASE2 = ['p','q','q','r','q','r','s'];
+const negL2 = [false,true,true,false,true,false,true]; // default del enunciado
+// negG2: [grpA=(p OP ¬q), grpB=(¬q OP r), macroL=[...], grpC=(r OP ¬s), macroR=[...]]
+const negG2 = [false,false,false,false,false];
+const ops2  = ['∧','∧','∧','∧','∧']; // [op_interno_A, op_entre_AB, op_interno_B, op_interno_C, op_entre_E_C]
+let opMain2 = '→'; // operador entre macrogrupos
+
+let curP = 1;
+
+const OPF={'∧':(a,b)=>a&&b,'∨':(a,b)=>a||b,'→':(a,b)=>!a||b,'↔':(a,b)=>a===b};
+const OPTS=['∧','∨','→','↔'];
+
+// ── RENDER PROP 1 ────────────────────────────────────────────────────
+function renderRow1(){
+  const row=document.getElementById('row1');
+  row.innerHTML='';
+  row.appendChild(makeGroup1(0));        // (p OP ¬q)
+  row.appendChild(makeOpEl(ops1,1,true,v=>{ops1[1]=v;}));
+  row.appendChild(makeGroup1(1));        // (¬q OP ¬r)
+}
+
+function makeGroup1(gi){
+  const li0=gi*2, li1=gi*2+1;
+  const w=document.createElement('div'); w.className='grp';
+  const gb=makeGnegBtn(negG1,gi,()=>renderRow1());
+  const pa=mkSpan('tp','(');
+  const l0=makeLitEl(negL1,li0,BASE1[li0],()=>renderRow1());
+  const op=makeOpEl(ops1,gi===0?0:2,false,v=>{ops1[gi===0?0:2]=v;});
+  const l1=makeLitEl(negL1,li1,BASE1[li1],()=>renderRow1());
+  const pc=mkSpan('tp',')');
+  [gb,pa,l0,op,l1,pc].forEach(e=>w.appendChild(e));
+  return w;
+}
+
+// ── RENDER PROP 2 ────────────────────────────────────────────────────
+// Estructura visual:
+//  [¬ML?][ [¬GA?](p OP0 ¬q) OP1 [¬GB?](¬q OP2 r) ] OP_MAIN [¬MR?][ ¬q OP4 [¬GC?](r OP3 ¬s) ]
+function renderRow2(){
+  const row=document.getElementById('row2');
+  row.innerHTML='';
+
+  // ── Macrogrupo izquierdo ──
+  const wML=document.createElement('div'); wML.className='grp';
+  const btnML=makeGnegBtn(negG2,2,()=>renderRow2()); btnML.title='Negar todo el bloque izquierdo [...]';
+  const bL=mkSpan('tb','[');
+
+  // Sub-grupo A: (p OP ¬q)
+  const gA=document.createElement('div'); gA.className='grp';
+  const btnGA=makeGnegBtn(negG2,0,()=>renderRow2());
+  const paA=mkSpan('tp','(');
+  const lA0=makeLitEl(negL2,0,BASE2[0],()=>renderRow2());
+  const opA=makeOpEl(ops2,0,false,v=>{ops2[0]=v;});
+  const lA1=makeLitEl(negL2,1,BASE2[1],()=>renderRow2());
+  const pcA=mkSpan('tp',')');
+  [btnGA,paA,lA0,opA,lA1,pcA].forEach(e=>gA.appendChild(e));
+
+  // Op entre A y B
+  const opAB=makeOpEl(ops2,1,true,v=>{ops2[1]=v;});
+
+  // Sub-grupo B: (¬q OP r)
+  const gB=document.createElement('div'); gB.className='grp';
+  const btnGB=makeGnegBtn(negG2,1,()=>renderRow2());
+  const paB=mkSpan('tp','(');
+  const lB0=makeLitEl(negL2,2,BASE2[2],()=>renderRow2());
+  const opB=makeOpEl(ops2,2,false,v=>{ops2[2]=v;});
+  const lB1=makeLitEl(negL2,3,BASE2[3],()=>renderRow2());
+  const pcB=mkSpan('tp',')');
+  [btnGB,paB,lB0,opB,lB1,pcB].forEach(e=>gB.appendChild(e));
+
+  const bLc=mkSpan('tb',']');
+  [btnML,bL,gA,opAB,gB,bLc].forEach(e=>wML.appendChild(e));
+
+  // ── Operador principal ──
+  const wOM=document.createElement('div'); wOM.className='ow-main';
+  const selOM=document.createElement('select'); selOM.className='osel-main';
+  OPTS.forEach(op=>{const o=document.createElement('option');o.value=op;o.textContent=op;if(op===opMain2)o.selected=true;selOM.appendChild(o);});
+  selOM.onchange=()=>{opMain2=selOM.value;updatePreview();clearResult();};
+  wOM.appendChild(selOM);
+
+  // ── Macrogrupo derecho ──
+  const wMR=document.createElement('div'); wMR.className='grp';
+  const btnMR=makeGnegBtn(negG2,4,()=>renderRow2()); btnMR.title='Negar todo el bloque derecho [...]';
+  const bR=mkSpan('tb','[');
+
+  // Literal E: ¬q
+  const lE=makeLitEl(negL2,4,BASE2[4],()=>renderRow2());
+
+  // Op entre E y grupo C
+  const opEC=makeOpEl(ops2,4,true,v=>{ops2[4]=v;});
+
+  // Sub-grupo C: (r OP ¬s)
+  const gC=document.createElement('div'); gC.className='grp';
+  const btnGC=makeGnegBtn(negG2,3,()=>renderRow2());
+  const paC=mkSpan('tp','(');
+  const lC0=makeLitEl(negL2,5,BASE2[5],()=>renderRow2());
+  const opC=makeOpEl(ops2,3,false,v=>{ops2[3]=v;});
+  const lC1=makeLitEl(negL2,6,BASE2[6],()=>renderRow2());
+  const pcC=mkSpan('tp',')');
+  [btnGC,paC,lC0,opC,lC1,pcC].forEach(e=>gC.appendChild(e));
+
+  const bRc=mkSpan('tb',']');
+  [btnMR,bR,lE,opEC,gC,bRc].forEach(e=>wMR.appendChild(e));
+
+  [wML,wOM,wMR].forEach(e=>row.appendChild(e));
+}
+
+// ── Helpers DOM ──────────────────────────────────────────────────────
+function mkSpan(cls,txt){const s=document.createElement('span');s.className=cls;s.textContent=txt;return s;}
+
+function makeGnegBtn(arr,idx,rerender){
+  const b=document.createElement('button');
+  b.className='gneg'+(arr[idx]?' on':'');
+  b.innerHTML='¬(…)';
+  b.title='Negar este subgrupo';
+  b.onclick=()=>{arr[idx]=!arr[idx];b.classList.toggle('on',arr[idx]);updatePreview();clearResult();rerender&&rerender();};
+  return b;
+}
+
+function makeLitEl(arr,idx,varName,rerender){
+  const w=document.createElement('div'); w.className='lw';
+  const b=document.createElement('button');
+  b.className='lb'+(arr[idx]?' on':'');
+  b.textContent='¬'; b.title='Negar variable';
+  b.onclick=()=>{arr[idx]=!arr[idx];b.classList.toggle('on',arr[idx]);updatePreview();clearResult();rerender&&rerender();};
+  const l=document.createElement('span'); l.className='ll'; l.textContent=varName;
+  w.appendChild(b); w.appendChild(l); return w;
+}
+
+function makeOpEl(arr,idx,isMain,onChange){
+  const w=document.createElement('div'); w.className=isMain?'ow-main':'ow';
+  const s=document.createElement('select'); s.className=isMain?'osel-main':'osel';
+  OPTS.forEach(op=>{const o=document.createElement('option');o.value=op;o.textContent=op;if(op===arr[idx])o.selected=true;s.appendChild(o);});
+  s.onchange=()=>{onChange(s.value);updatePreview();clearResult();};
+  w.appendChild(s); return w;
+}
+
+// ── Preview HTML ──────────────────────────────────────────────────────
+function lH(arr,idx,vname){return(arr[idx]?`<span class="pv-n">¬</span>`:'')+`<span class="pv-v">${vname}</span>`;}
+function lP(arr,idx,vname){return(arr[idx]?'¬':'')+vname;}
+function oH(op){return`<span class="pv-o"> ${op} </span>`;}
+function oP(op){return` ${op} `;}
+function pH(t){return`<span class="pv-p">${t}</span>`;}
+function bH(t){return`<span class="pv-b">${t}</span>`;}
+function gNH(on,inner){return on?`<span class="pv-gn">¬</span>`+inner:inner;}
+function gNP(on,inner){return on?'¬'+inner:inner;}
+
+function buildPreview1(html){
+  const h=html;
+  const g0=gNH(negG1[0],(h?pH('('):('('))+lH(negL1,0,BASE1[0])+oH(ops1[0])+lH(negL1,1,BASE1[1])+(h?pH(')'):')'));
+  const g1=gNH(negG1[1],(h?pH('('):('('))+lH(negL1,2,BASE1[2])+oH(ops1[2])+lH(negL1,3,BASE1[3])+(h?pH(')'):')'));
+  if(!h){
+    const g0p=gNP(negG1[0],'('+lP(negL1,0,BASE1[0])+oP(ops1[0])+lP(negL1,1,BASE1[1])+')');
+    const g1p=gNP(negG1[1],'('+lP(negL1,2,BASE1[2])+oP(ops1[2])+lP(negL1,3,BASE1[3])+')');
+    return g0p+oP(ops1[1])+g1p;
+  }
+  return g0+oH(ops1[1])+g1;
+}
+
+function buildPreview2(html){
+  // Sub-grupos
+  const mkG=(negArr,ni0,v0,op,ni1,v1,gNeg)=>{
+    const inner=(html?pH('('):'(')+lH(negArr,ni0,v0)+oH(op)+lH(negArr,ni1,v1)+(html?pH(')'):')'
+    );
+    const innerP='('+lP(negArr,ni0,v0)+oP(op)+lP(negArr,ni1,v1)+')';
+    return html?gNH(gNeg,inner):gNP(gNeg,innerP);
+  };
+
+  if(!html){
+    const gA=gNP(negG2[0],'('+lP(negL2,0,BASE2[0])+oP(ops2[0])+lP(negL2,1,BASE2[1])+')');
+    const gB=gNP(negG2[1],'('+lP(negL2,2,BASE2[2])+oP(ops2[2])+lP(negL2,3,BASE2[3])+')');
+    const macroL=gNP(negG2[2],'['+gA+oP(ops2[1])+gB+']');
+    const lE=lP(negL2,4,BASE2[4]);
+    const gC=gNP(negG2[3],'('+lP(negL2,5,BASE2[5])+oP(ops2[3])+lP(negL2,6,BASE2[6])+')');
+    const macroR=gNP(negG2[4],'['+lE+oP(ops2[4])+gC+']');
+    return macroL+oP(opMain2)+macroR;
+  }
+
+  const gAh=gNH(negG2[0],pH('(')+lH(negL2,0,BASE2[0])+oH(ops2[0])+lH(negL2,1,BASE2[1])+pH(')'));
+  const gBh=gNH(negG2[1],pH('(')+lH(negL2,2,BASE2[2])+oH(ops2[2])+lH(negL2,3,BASE2[3])+pH(')'));
+  const macroLh=gNH(negG2[2],bH('[')+gAh+oH(ops2[1])+gBh+bH(']'));
+  const lEh=lH(negL2,4,BASE2[4]);
+  const gCh=gNH(negG2[3],pH('(')+lH(negL2,5,BASE2[5])+oH(ops2[3])+lH(negL2,6,BASE2[6])+pH(')'));
+  const macroRh=gNH(negG2[4],bH('[')+lEh+oH(ops2[4])+gCh+bH(']'));
+  return macroLh+oH(opMain2)+macroRh;
+}
+
+function updatePreview(){
+  document.getElementById('preview').innerHTML=curP===1?buildPreview1(true):buildPreview2(true);
+}
+
+// ── Evaluación ────────────────────────────────────────────────────────
+function evalRow1(p,q,r){
+  const vm={p,q,r};
+  const lits=BASE1.map((v,i)=>{const val=vm[v];return negL1[i]?!val:val;});
+  const g0=OPF[ops1[0]](lits[0],lits[1]); const ng0=negG1[0]?!g0:g0;
+  const g1=OPF[ops1[2]](lits[2],lits[3]); const ng1=negG1[1]?!g1:g1;
+  return{lits,g0,ng0,g1,ng1,res:OPF[ops1[1]](ng0,ng1)};
+}
+
+function evalRow2(p,q,r,s){
+  const vm={p,q,r,s};
+  const lits=BASE2.map((v,i)=>{const val=vm[v];return negL2[i]?!val:val;});
+  // Sub-grupos internos
+  const gA=OPF[ops2[0]](lits[0],lits[1]); const ngA=negG2[0]?!gA:gA;
+  const gB=OPF[ops2[2]](lits[2],lits[3]); const ngB=negG2[1]?!gB:gB;
+  // Macrogrupo izquierdo
+  const macL=OPF[ops2[1]](ngA,ngB);       const nMacL=negG2[2]?!macL:macL;
+  // Sub-grupo derecho C
+  const gC=OPF[ops2[3]](lits[5],lits[6]); const ngC=negG2[3]?!gC:gC;
+  // Macrogrupo derecho: lits[4] OP gC
+  const macR=OPF[ops2[4]](lits[4],ngC);   const nMacR=negG2[4]?!macR:macR;
+  // Resultado
+  return{lits,gA,ngA,gB,ngB,macL,nMacL,gC,ngC,macR,nMacR,res:OPF[opMain2](nMacL,nMacR)};
+}
+
+// ── Calcular ──────────────────────────────────────────────────────────
+function calcular(){
+  hideErr();
+  const rows=[];
+  let allT=true,allF=true;
+
+  if(curP===1){
+    for(const p of[true,false]) for(const q of[true,false]) for(const r of[true,false]){
+      const ev=evalRow1(p,q,r);
+      rows.push({p,q,r,...ev});
+      if(!ev.res)allT=false; if(ev.res)allF=false;
+    }
+  } else {
+    for(const p of[true,false]) for(const q of[true,false]) for(const r of[true,false]) for(const s of[true,false]){
+      const ev=evalRow2(p,q,r,s);
+      rows.push({p,q,r,s,...ev});
+      if(!ev.res)allT=false; if(ev.res)allF=false;
+    }
+  }
+
+  const bw=document.getElementById('bw');
+  if(allT) bw.innerHTML='<span class="badge bt">✓ Tautología — siempre verdadera</span>';
+  else if(allF) bw.innerHTML='<span class="badge bx">✗ Contradicción — siempre falsa</span>';
+  else bw.innerHTML='<span class="badge bc">◈ Contingente — depende de los valores</span>';
+
+  const tbl=document.getElementById('tbl');
+  const tv=v=>`<span class="${v?'vT':'vF'}">${v?'V':'F'}</span>`;
+
+  if(curP===1){
+    const fp=buildPreview1(false);
+    const gA_lbl=gNP(negG1[0],'('+lP(negL1,0,BASE1[0])+oP(ops1[0])+lP(negL1,1,BASE1[1])+')');
+    const gB_lbl=gNP(negG1[1],'('+lP(negL1,2,BASE1[2])+oP(ops1[2])+lP(negL1,3,BASE1[3])+')');
+    tbl.innerHTML=`
+      <thead><tr>
+        <th>p</th><th>q</th><th>r</th>
+        <th class="thsep">${lP(negL1,0,BASE1[0])}</th><th>${lP(negL1,1,BASE1[1])}</th>
+        <th>${lP(negL1,2,BASE1[2])}</th><th>${lP(negL1,3,BASE1[3])}</th>
+        <th class="thsep">${gA_lbl}</th><th>${gB_lbl}</th>
+        <th class="thr">${fp}</th>
+      </tr></thead>
+      <tbody>${rows.map((r,i)=>{
+        const sep=(i>0&&rows[i-1].p!==r.p)?' class="rsep"':'';
+        return`<tr${sep}>
+          <td>${tv(r.p)}</td><td>${tv(r.q)}</td><td>${tv(r.r)}</td>
+          <td class="tdsep">${tv(r.lits[0])}</td><td>${tv(r.lits[1])}</td>
+          <td>${tv(r.lits[2])}</td><td>${tv(r.lits[3])}</td>
+          <td class="tdsep">${tv(r.ng0)}</td><td>${tv(r.ng1)}</td>
+          <td class="tdr ${r.res?'vT':'vF'}">${r.res?'V':'F'}</td>
+        </tr>`;
+      }).join('')}</tbody>`;
+  } else {
+    const fp=buildPreview2(false);
+    const gAlbl=gNP(negG2[0],'('+lP(negL2,0,BASE2[0])+oP(ops2[0])+lP(negL2,1,BASE2[1])+')');
+    const gBlbl=gNP(negG2[1],'('+lP(negL2,2,BASE2[2])+oP(ops2[2])+lP(negL2,3,BASE2[3])+')');
+    const macLlbl=gNP(negG2[2],'['+gAlbl+oP(ops2[1])+gBlbl+']');
+    const lElbl=lP(negL2,4,BASE2[4]);
+    const gClbl=gNP(negG2[3],'('+lP(negL2,5,BASE2[5])+oP(ops2[3])+lP(negL2,6,BASE2[6])+')');
+    const macRlbl=gNP(negG2[4],'['+lElbl+oP(ops2[4])+gClbl+']');
+    tbl.innerHTML=`
+      <thead><tr>
+        <th>p</th><th>q</th><th>r</th><th>s</th>
+        <th class="thsep">${lP(negL2,0,BASE2[0])}</th><th>${lP(negL2,1,BASE2[1])}</th>
+        <th>${lP(negL2,2,BASE2[2])}</th><th>${lP(negL2,3,BASE2[3])}</th>
+        <th>${lP(negL2,4,BASE2[4])}</th><th>${lP(negL2,5,BASE2[5])}</th><th>${lP(negL2,6,BASE2[6])}</th>
+        <th class="thsep">${gAlbl}</th><th>${gBlbl}</th><th>${gClbl}</th>
+        <th class="thsep">${macLlbl}</th><th>${macRlbl}</th>
+        <th class="thr">${fp}</th>
+      </tr></thead>
+      <tbody>${rows.map((r,i)=>{
+        const sep=(i>0&&rows[i-1].p!==r.p)?' class="rsep"':'';
+        return`<tr${sep}>
+          <td>${tv(r.p)}</td><td>${tv(r.q)}</td><td>${tv(r.r)}</td><td>${tv(r.s)}</td>
+          <td class="tdsep">${tv(r.lits[0])}</td><td>${tv(r.lits[1])}</td>
+          <td>${tv(r.lits[2])}</td><td>${tv(r.lits[3])}</td>
+          <td>${tv(r.lits[4])}</td><td>${tv(r.lits[5])}</td><td>${tv(r.lits[6])}</td>
+          <td class="tdsep">${tv(r.ngA)}</td><td>${tv(r.ngB)}</td><td>${tv(r.ngC)}</td>
+          <td class="tdsep">${tv(r.nMacL)}</td><td>${tv(r.nMacR)}</td>
+          <td class="tdr ${r.res?'vT':'vF'}">${r.res?'V':'F'}</td>
+        </tr>`;
+      }).join('')}</tbody>`;
+  }
+
+  const rc=document.getElementById('rc');
+  rc.style.display='block';
+  rc.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function hideErr(){document.getElementById('err').classList.remove('show');}
+function clearResult(){document.getElementById('rc').style.display='none';hideErr();}
+
+function selectProp(n){
+  curP=n;
+  document.getElementById('tab1').classList.toggle('active',n===1);
+  document.getElementById('tab2').classList.toggle('active',n===2);
+  document.getElementById('b1').style.display=n===1?'':'none';
+  document.getElementById('b2').style.display=n===2?'':'none';
+  clearResult(); updatePreview();
+}
+
+// Init
+renderRow1(); renderRow2(); updatePreview();
+</script>
+</body>
+</html>
